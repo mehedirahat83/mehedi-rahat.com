@@ -1,0 +1,168 @@
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const enquiries = sqliteTable(
+  "enquiries",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    mobile: text("mobile").notNull(),
+    service: text("service").notNull(),
+    details: text("details").notNull(),
+    status: text("status").notNull().default("new"),
+    sourcePath: text("source_path").notNull().default("/contact"),
+    emailStatus: text("email_status").notNull().default("pending"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("enquiries_created_at_idx").on(table.createdAt),
+    index("enquiries_status_idx").on(table.status),
+  ],
+);
+
+export const customers = sqliteTable(
+  "customers",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull().unique(),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    lifetimeSpend: integer("lifetime_spend").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("customers_email_idx").on(table.email)],
+);
+
+export const orders = sqliteTable(
+  "orders",
+  {
+    id: text("id").primaryKey(),
+    orderNumber: text("order_number").notNull().unique(),
+    receiptTokenHash: text("receipt_token_hash").notNull(),
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id),
+    status: text("status").notNull().default("payment_verification"),
+    currency: text("currency").notNull().default("BDT"),
+    subtotal: integer("subtotal").notNull(),
+    discount: integer("discount").notNull().default(0),
+    paymentCharge: integer("payment_charge").notNull().default(0),
+    total: integer("total").notNull(),
+    couponCode: text("coupon_code"),
+    paymentMethod: text("payment_method").notNull(),
+    notes: text("notes"),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    completedAt: text("completed_at"),
+  },
+  (table) => [
+    index("orders_customer_idx").on(table.customerId),
+    index("orders_status_idx").on(table.status),
+    index("orders_created_idx").on(table.createdAt),
+  ],
+);
+
+export const orderItems = sqliteTable(
+  "order_items",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id),
+    itemKey: text("item_key").notNull(),
+    name: text("name").notNull(),
+    category: text("category").notNull(),
+    variation: text("variation").notNull(),
+    unitPrice: integer("unit_price").notNull(),
+    quantity: integer("quantity").notNull(),
+    lineTotal: integer("line_total").notNull(),
+  },
+  (table) => [index("order_items_order_idx").on(table.orderId)],
+);
+
+export const paymentSubmissions = sqliteTable(
+  "payment_submissions",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .unique()
+      .references(() => orders.id),
+    method: text("method").notNull(),
+    senderNumber: text("sender_number").notNull(),
+    transactionId: text("transaction_id").notNull().unique(),
+    status: text("status").notNull().default("pending"),
+    verifiedBy: text("verified_by"),
+    verifiedAt: text("verified_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("payment_order_idx").on(table.orderId),
+    index("payment_transaction_idx").on(table.transactionId),
+  ],
+);
+
+export const orderStatusHistory = sqliteTable(
+  "order_status_history",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status").notNull(),
+    note: text("note"),
+    actor: text("actor").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("order_history_order_idx").on(table.orderId)],
+);
+
+export const entitlements = sqliteTable(
+  "entitlements",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id),
+    orderItemId: text("order_item_id")
+      .notNull()
+      .references(() => orderItems.id),
+    itemKey: text("item_key").notNull(),
+    variation: text("variation").notNull(),
+    status: text("status").notNull().default("active"),
+    downloadUrl: text("download_url"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("entitlements_customer_idx").on(table.customerId),
+    index("entitlements_order_idx").on(table.orderId),
+  ],
+);
+
+export const emailOutbox = sqliteTable(
+  "email_outbox",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id").references(() => orders.id),
+    kind: text("kind").notNull(),
+    recipient: text("recipient").notNull(),
+    subject: text("subject").notNull(),
+    status: text("status").notNull().default("pending"),
+    providerId: text("provider_id"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: text("created_at").notNull(),
+    sentAt: text("sent_at"),
+  },
+  (table) => [
+    index("email_outbox_status_idx").on(table.status),
+    index("email_outbox_order_idx").on(table.orderId),
+  ],
+);
