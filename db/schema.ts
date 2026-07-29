@@ -1,6 +1,6 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { bigint, index, integer, pgTable, text } from "drizzle-orm/pg-core";
 
-export const enquiries = sqliteTable(
+export const enquiries = pgTable(
   "enquiries",
   {
     id: text("id").primaryKey(),
@@ -12,8 +12,8 @@ export const enquiries = sqliteTable(
     status: text("status").notNull().default("new"),
     sourcePath: text("source_path").notNull().default("/contact"),
     emailStatus: text("email_status").notNull().default("pending"),
-    createdAt: integer("created_at").notNull(),
-    updatedAt: integer("updated_at").notNull(),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
   },
   (table) => [
     index("enquiries_created_at_idx").on(table.createdAt),
@@ -21,7 +21,7 @@ export const enquiries = sqliteTable(
   ],
 );
 
-export const customers = sqliteTable(
+export const customers = pgTable(
   "customers",
   {
     id: text("id").primaryKey(),
@@ -35,7 +35,7 @@ export const customers = sqliteTable(
   (table) => [index("customers_email_idx").on(table.email)],
 );
 
-export const orders = sqliteTable(
+export const orders = pgTable(
   "orders",
   {
     id: text("id").primaryKey(),
@@ -65,7 +65,7 @@ export const orders = sqliteTable(
   ],
 );
 
-export const orderItems = sqliteTable(
+export const orderItems = pgTable(
   "order_items",
   {
     id: text("id").primaryKey(),
@@ -83,7 +83,7 @@ export const orderItems = sqliteTable(
   (table) => [index("order_items_order_idx").on(table.orderId)],
 );
 
-export const paymentSubmissions = sqliteTable(
+export const paymentSubmissions = pgTable(
   "payment_submissions",
   {
     id: text("id").primaryKey(),
@@ -105,7 +105,7 @@ export const paymentSubmissions = sqliteTable(
   ],
 );
 
-export const orderStatusHistory = sqliteTable(
+export const orderStatusHistory = pgTable(
   "order_status_history",
   {
     id: text("id").primaryKey(),
@@ -121,7 +121,7 @@ export const orderStatusHistory = sqliteTable(
   (table) => [index("order_history_order_idx").on(table.orderId)],
 );
 
-export const entitlements = sqliteTable(
+export const entitlements = pgTable(
   "entitlements",
   {
     id: text("id").primaryKey(),
@@ -146,7 +146,7 @@ export const entitlements = sqliteTable(
   ],
 );
 
-export const emailOutbox = sqliteTable(
+export const emailOutbox = pgTable(
   "email_outbox",
   {
     id: text("id").primaryKey(),

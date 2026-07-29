@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1785167134506,
-      "tag": "0000_colorful_hiroim",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1785177809752,
-      "tag": "0001_parallel_micromax",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1785219306713,
-      "tag": "0002_purple_warstar",
+      "version": "7",
+      "when": 1785351704187,
+      "tag": "0000_demonic_justin_hammer",
       "breakpoints": true
     }
   ]

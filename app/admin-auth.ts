@@ -1,5 +1,3 @@
-import { env } from "cloudflare:workers";
-
 const ADMIN_COOKIE = "mr_admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
@@ -10,7 +8,11 @@ type AdminEnvironment = {
 };
 
 function getAdminConfig() {
-  const bindings = env as unknown as AdminEnvironment;
+  const bindings: AdminEnvironment = {
+    ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+    ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
+  };
   const configured = Boolean(
     bindings.ADMIN_EMAIL &&
       bindings.ADMIN_PASSWORD &&

@@ -1,101 +1,86 @@
-# vinext-starter
+# mehedi-rahat.com
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+The Next.js application for mehedirahat.com, prepared for a standard Node.js
+deployment on a Hostinger VPS.
 
-## Prerequisites
+## Requirements
 
-- Node.js `>=22.13.0`
+- Node.js 22
+- pnpm 11
+- PostgreSQL 15 or newer
 
-## Quick Start
+## Local development
 
 ```bash
-npm install
-npm run dev
-npm run build
-npm start
+pnpm install
+copy .env.example .env.local
+pnpm dev
 ```
 
-This starter does not use `wrangler.jsonc`.
+Open `http://localhost:3000`.
 
-## Included Shape
+## Environment variables
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+Copy `.env.example` to `.env.local` for development. Configure the same values
+in the VPS process manager for production.
 
-## Workspace Auth Headers
+- `DATABASE_URL`: PostgreSQL connection string
+- `DATABASE_SSL`: set to `true` only when the database provider requires SSL
+- `ADMIN_EMAIL`: administrator login email
+- `ADMIN_PASSWORD`: administrator login password
+- `ADMIN_SESSION_SECRET`: long random signing secret
+- `RESEND_API_KEY`: optional Resend API key
+- `ENQUIRY_NOTIFICATION_EMAIL`: enquiry notification recipient
+- `ENQUIRY_FROM_EMAIL`: verified sender for enquiry email
+- `ORDER_FROM_EMAIL`: verified sender for order email
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
+Do not commit `.env.local` or production secrets.
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+## Database
 
-Treat the full name as optional and fall back to email when it is absent:
+Generate a migration after schema changes:
 
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+pnpm db:generate
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+Apply committed migrations to the configured PostgreSQL database:
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+```bash
+pnpm db:migrate
+```
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+The initial Hostinger/PostgreSQL schema is in
+`drizzle/0000_demonic_justin_hammer.sql`.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+## Validation
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+```bash
+pnpm check
+pnpm audit --prod
+```
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+## Production
 
-## Useful Commands
+Create the standalone production build:
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm start`: preview the production build with the Cloudflare-compatible Vite runtime
-- `npm run check`: run type checking, linting, foundation tests, and the production build
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+```bash
+pnpm build
+```
 
-## Learn More
+For a regular Node deployment:
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+```bash
+pnpm start
+```
+
+For the smaller standalone artifact, copy `.next/standalone`, `.next/static`,
+and `public` to the VPS release directory and run:
+
+```bash
+node server.js
+```
+
+Put Nginx in front of the Node process and run the app with a process manager
+such as systemd or PM2. Set `HOSTNAME=127.0.0.1` and the chosen internal `PORT`
+in the production service.
