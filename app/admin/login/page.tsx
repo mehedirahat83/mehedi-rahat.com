@@ -19,10 +19,17 @@ export default function AdminLoginPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
 
       if (!response.ok) {
-        setError(result.error || "Sign in failed. Please check your details.");
+        setError(
+          result.message ||
+            result.error ||
+            "Sign in failed. Please check your details.",
+        );
         return;
       }
 
@@ -35,10 +42,10 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="admin-login-screen">
+    <main className="admin-login-shell">
       <section className="admin-login-card">
         <div className="admin-login-brand">
-          <span aria-hidden="true">MR</span>
+          <span className="admin-login-mark" aria-hidden="true">MR</span>
           <div>
             <strong>MEHEDI RAHAT</strong>
             <small>Secure Admin Panel</small>
@@ -51,7 +58,7 @@ export default function AdminLoginPage() {
           <span>Sign in to manage your website, orders and customer operations.</span>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form className="admin-login-form" onSubmit={handleSubmit}>
           <label>
             Email address
             <input

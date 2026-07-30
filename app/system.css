@@ -89,6 +89,16 @@
   font: 800 15px/1.2 Inter, sans-serif;
 }
 
+.admin-login-brand > div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-login-brand small {
+  color: #64747a;
+  font: 600 11px/1.2 Roboto, sans-serif;
+}
+
 .admin-login-mark {
   display: grid;
   width: 44px;
@@ -99,12 +109,20 @@
   color: #fff;
 }
 
-.admin-login-card h1 {
+.admin-login-copy h1 {
   margin: 0 0 8px;
   font: 750 32px/1.15 Inter, sans-serif;
 }
 
-.admin-login-card > p {
+.admin-login-copy > p {
+  margin: 0 0 7px;
+  color: #0d8e89;
+  font: 800 11px/1.2 Inter, sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.admin-login-copy > span {
+  display: block;
   margin: 0 0 24px;
   color: #5c6873;
   font: 400 15px/1.6 Roboto, sans-serif;
@@ -142,10 +160,45 @@
   cursor: pointer;
 }
 
+.admin-login-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-login-form input:focus {
+  border-color: #0d8e89;
+  outline: 3px solid rgba(13, 142, 137, 0.13);
+}
+
 .admin-login-error {
   padding: 11px 13px;
   border-radius: 9px;
   background: #fff0f0;
   color: #a32929;
   font: 600 13px/1.45 Roboto, sans-serif;
+}
+
+.admin-login-back {
+  display: inline-block;
+  margin-top: 22px;
+  color: #425760;
+  font: 700 12px/1.2 Inter, sans-serif;
+  text-decoration: none;
+}
+
+.admin-login-back:hover {
+  color: #0d8e89;
+}
+
+@media (max-width: 560px) {
+  .admin-login-shell {
+    align-items: start;
+    padding: 18px;
+  }
+
+  .admin-login-card {
+    margin-top: 28px;
+    padding: 26px 22px;
+    border-radius: 18px;
+  }
 }
