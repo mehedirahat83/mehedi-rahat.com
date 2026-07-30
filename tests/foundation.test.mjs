@@ -91,6 +91,35 @@ const checks = [
     assert.match(migration, /ON DELETE cascade/);
     assert.match(migration, /CREATE UNIQUE INDEX "products_slug_uidx"/);
   }],
+  ["products API separates public reads from authenticated catalog writes", async () => {
+    const [collectionRoute, detailRoute, shared] = await Promise.all([
+      read("app/api/products/route.ts"),
+      read("app/api/products/[id]/route.ts"),
+      read("app/api/products/shared.ts"),
+    ]);
+
+    assert.match(collectionRoute, /export\s+async\s+function\s+GET/);
+    assert.match(collectionRoute, /export\s+async\s+function\s+POST/);
+    assert.match(detailRoute, /export\s+async\s+function\s+GET/);
+    assert.match(detailRoute, /export\s+async\s+function\s+PATCH/);
+    assert.match(detailRoute, /export\s+async\s+function\s+DELETE/);
+    assert.ok(
+      (collectionRoute.match(/isAdminRequest/g) ?? []).length >= 2,
+      "draft listing and product creation must require admin authentication",
+    );
+    assert.ok(
+      (detailRoute.match(/isAdminRequest/g) ?? []).length >= 3,
+      "draft details, product updates and deletes must require admin authentication",
+    );
+    assert.match(shared, /p\.status='published'/);
+    assert.match(shared, /validateProductInput/);
+    assert.match(shared, /statuses\.has/);
+    assert.match(shared, /licenses\.has/);
+    assert.match(shared, /isSafeResourceUrl/);
+    assert.match(collectionRoute, /client\.query\(["']BEGIN["']\)/);
+    assert.match(detailRoute, /client\.query\(["']BEGIN["']\)/);
+    assert.match(detailRoute, /DELETE FROM products WHERE id=\$1 OR slug=\$1/);
+  }],
   ["the production target is standard Next.js standalone", async () => {
     const [packageJson, nextConfig] = await Promise.all([
       read("package.json"),
