@@ -24,8 +24,8 @@ export const seedContactPageSettings:ContactPageSettings={
  channels:[
   {icon:"WA",label:"WhatsApp & Phone",value:"01977 02 48 68",href:"https://wa.me/8801977024868",note:"Fastest for a quick discussion"},
   {icon:"@",label:"Email",value:"contact@mehedirahat.com",href:"mailto:contact@mehedirahat.com",note:"Best for detailed requirements"},
-  {icon:"⌖",label:"Location",value:"Bashundhara R/A, Dhaka",href:"#",note:"Serving clients worldwide"},
-  {icon:"◷",label:"Support hours",value:"10:00 AM–11:59 PM",href:"#",note:"Available every day"}
+  {icon:"⌖",label:"Location",value:"Bashundhara R/A, Dhaka",href:"https://www.google.com/maps/search/?api=1&query=Bashundhara+R%2FA%2C+Dhaka",note:"Serving clients worldwide"},
+  {icon:"◷",label:"Support hours",value:"10:00 AM–11:59 PM",href:"#contact-form",note:"Available every day"}
  ],
  processVisible:true,processEyebrow:"WHAT HAPPENS NEXT",processHeading:"A clear path from enquiry to action.",
  processSteps:[

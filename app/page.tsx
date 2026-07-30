@@ -69,43 +69,6 @@ export default function Home() {
       <MainHeader active="home" />
       <HomeHero />
 
-      <section className="hero hero-static">
-        <div className="shell hero-grid">
-          <div className="hero-copy">
-            <span className="eyebrow">15+ years of practical experience</span>
-            <h1>
-              <span className="hero-line">Modern websites</span>
-              <span className="hero-line">and tools that <em>grow</em></span>
-              <span className="hero-line"><em>your business.</em></span>
-            </h1>
-            <p><strong>Mehedi Rahat</strong> is the passionate full stack developer &amp; product designer having 15 years of experiences over 24+ country worldwide. Expert for LMS website, listing site, eCommerce, elementor business website, landing page &amp; many more.</p>
-            <div className="hero-actions">
-              <a className="button primary" href="#products">Explore Products <Arrow /></a>
-              <a className="button secondary" href="#services">View Services</a>
-            </div>
-            <div className="trust-row">
-              <span><b>3K+</b> Projects</span><span><b>2.8K+</b> Clients</span><span><b>4.9/5</b> Rating</span>
-            </div>
-          </div>
-          <div className="hero-visual" aria-label="Mehedi Rahat digital solutions">
-            <div className="visual-orbit orbit-one" />
-            <div className="visual-orbit orbit-two" />
-            <div className="hero-message-card">
-              <span className="message-kicker">Complete digital growth partner</span>
-              <h2>One expert.<br /><em>Three ways to grow.</em></h2>
-              <div className="solution-list">
-                <article><span>01</span><div><b>Custom Websites</b><small>Built around your exact business goals</small></div><i>↗</i></article>
-                <article><span>02</span><div><b>Ready Websites</b><small>Professional websites with a faster launch</small></div><i>↗</i></article>
-                <article><span>03</span><div><b>Premium Tools</b><small>Reliable products, licensing and support</small></div><i>↗</i></article>
-              </div>
-              <div className="message-proof"><span><b>15 years</b><small>Experience</small></span><span><b>24+ countries</b><small>Worldwide reach</small></span></div>
-            </div>
-            <div className="float-card float-member"><span>MR</span><p><small>Built personally by</small><b>Full-stack developer</b></p></div>
-            <div className="float-card float-speed"><b>4.9/5</b><small>Client rating</small></div>
-          </div>
-        </div>
-      </section>
-
       <section className="proof-strip">
         <div className="proof-fade proof-fade-left" />
         <div className="proof-track">
