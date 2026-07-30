@@ -3,11 +3,19 @@ import {useEffect,useState} from "react";
 import AdminSidebar from "./AdminSidebar";
 import {MrCommercePageSettings,loadMrCommercePageSettings,saveMrCommercePageSettings,seedMrCommercePageSettings} from "../mrCommercePageStore";
 const lines=(v:string)=>v.split("\n").map(x=>x.trim()).filter(Boolean);
+type SettingsSetter=<K extends keyof MrCommercePageSettings>(key:K,value:MrCommercePageSettings[K])=>void;
+type ArrayKey="stats"|"overviewCards"|"featureGroups"|"capabilityGroups"|"workflowSteps";
+type HeadingPrefix="overview"|"features"|"capabilities"|"workflow"|"pricing";
+type HeadingKey=`${HeadingPrefix}${"Eyebrow"|"Title"|"Highlight"}`;
 export default function AdminMrCommercePage(){
  const[data,setData]=useState(seedMrCommercePageSettings),[message,setMessage]=useState("");
  useEffect(()=>setData(loadMrCommercePageSettings()),[]);
- const set=(key:keyof MrCommercePageSettings,value:any)=>setData(c=>({...c,[key]:value}));
- const item=(key:keyof MrCommercePageSettings,index:number,field:string,value:any)=>setData(c=>({...c,[key]:(c[key] as any[]).map((x,i)=>i===index?{...x,[field]:value}:x)}));
+ const set:SettingsSetter=(key,value)=>setData(c=>({...c,[key]:value}));
+ const item=(key:ArrayKey,index:number,field:string,value:unknown)=>setData(c=>{
+  const current:readonly unknown[]=c[key];
+  const updated=current.map((entry,i)=>i===index&&typeof entry==="object"&&entry!==null?{...entry,[field]:value}:entry);
+  return {...c,[key]:updated} as MrCommercePageSettings;
+ });
  const save=()=>{saveMrCommercePageSettings(data);setMessage("MR Commerce Pro Page saved and connected to the live page.")};
  return <main className="admin-root"><AdminSidebar active="pages"/><section className="admin-workspace"><Top/>
   <div className="admin-page-title"><div><span className="eyebrow">MR Exclusive content</span><h1>MR Commerce Pro Page</h1><p>Edit the complete landing page from one place.</p></div><a href="/mr-commerce-pro" target="_blank">View live page ↗</a></div>
@@ -35,4 +43,7 @@ function Card({title,children}:{title:string;children:React.ReactNode}){return <
 function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="editor-field"><span>{label}</span>{children}</label>}
 function Grid({children}:{children:React.ReactNode}){return <div className="editor-grid">{children}</div>}
 function Repeat({children}:{children:React.ReactNode}){return <div className="services-admin-repeat">{children}</div>}
-function Heading({data,set,prefix}:{data:any;set:(key:any,value:any)=>void;prefix:string}){return <Grid><Field label="Eyebrow"><input value={data[`${prefix}Eyebrow`]} onChange={e=>set(`${prefix}Eyebrow`,e.target.value)}/></Field><Field label="Heading"><input value={data[`${prefix}Title`]} onChange={e=>set(`${prefix}Title`,e.target.value)}/></Field><Field label="Highlighted heading"><input value={data[`${prefix}Highlight`]} onChange={e=>set(`${prefix}Highlight`,e.target.value)}/></Field></Grid>}
+function Heading({data,set,prefix}:{data:MrCommercePageSettings;set:SettingsSetter;prefix:HeadingPrefix}){
+ const eyebrowKey=`${prefix}Eyebrow` as HeadingKey,titleKey=`${prefix}Title` as HeadingKey,highlightKey=`${prefix}Highlight` as HeadingKey;
+ return <Grid><Field label="Eyebrow"><input value={data[eyebrowKey]} onChange={e=>set(eyebrowKey,e.target.value)}/></Field><Field label="Heading"><input value={data[titleKey]} onChange={e=>set(titleKey,e.target.value)}/></Field><Field label="Highlighted heading"><input value={data[highlightKey]} onChange={e=>set(highlightKey,e.target.value)}/></Field></Grid>
+}

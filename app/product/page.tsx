@@ -3,6 +3,7 @@ import { useEffect,useState } from "react";
 import SiteFooter from "../SiteFooter";
 import MainHeader from "../MainHeader";
 import { loadProductFaq,loadProducts,StoreProduct } from "../productStore";
+type CartItem={id:string;name:string;category:string;variation:string;price:number;quantity:number};
 
 function Arrow(){return <span aria-hidden="true">↗</span>}
 
@@ -15,14 +16,12 @@ const reviews=[
 ];
 
 export default function ProductPage(){
-  const [product,setProduct]=useState<StoreProduct|null>(null),[products,setProducts]=useState<StoreProduct[]>([]),[selected,setSelected]=useState(0),[cartCount,setCartCount]=useState(0),[added,setAdded]=useState(false);
+  const [product,setProduct]=useState<StoreProduct|null>(null),[products,setProducts]=useState<StoreProduct[]>([]),[selected,setSelected]=useState(0),[added,setAdded]=useState(false);
   useEffect(()=>{
     const id=new URLSearchParams(location.search).get("id");
     const all=loadProducts().filter(x=>x.status==="Published");
     setProducts(all);
     setProduct(all.find(x=>x.id===id)||null);
-    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as {quantity:number}[];
-    setCartCount(cart.reduce((total,item)=>total+item.quantity,0));
   },[]);
   if(!product)return <main><div className="success-page"><div className="success-card"><h1>Product not found.</h1><p>This product may be unpublished or removed.</p><a className="button primary" href="/products">Browse products</a></div></div></main>;
 
@@ -33,13 +32,12 @@ export default function ProductPage(){
   const related=products.filter(item=>item.id!==productId).slice(0,7);
   const faqs=loadProductFaq().split("\n").filter(Boolean).map(row=>{const splitAt=row.indexOf("|");return splitAt<0?[row,"Please contact support for details."]:[row.slice(0,splitAt),row.slice(splitAt+1)]});
   function add(){
-    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as any[];
+    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as CartItem[];
     const id=`${productId}-${variation.label}`;
     const exists=cart.find(item=>item.id===id);
     if(exists)exists.quantity++;
     else cart.push({id,name:productName,category:productCategory,variation:variation.label,price:variation.price,quantity:1});
     localStorage.setItem("mr-cart",JSON.stringify(cart));
-    setCartCount(cart.reduce((total,item)=>total+item.quantity,0));
     setAdded(true);
   }
 

@@ -1,3 +1,5 @@
+import { mergeWithArrayDefaults } from "./storeUtils";
+
 export type MrCommercePageSettings={
   heroEyebrow:string;heroTitle:string;heroHighlight:string;heroDescription:string;
   primaryLabel:string;primaryUrl:string;secondaryLabel:string;secondaryUrl:string;
@@ -48,8 +50,8 @@ const key="mr-commerce-page-settings";
 export function loadMrCommercePageSettings():MrCommercePageSettings{
   if(typeof window==="undefined")return seedMrCommercePageSettings;
   try{
-    const saved=JSON.parse(localStorage.getItem(key)||"{}"),merged:any={...seedMrCommercePageSettings,...saved};
-    ["stats","videoProofs","overviewCards","featureGroups","capabilityGroups","workflowSteps","freeFeatures","freeBenefits","proFeatures"].forEach(name=>{if(!Array.isArray(saved[name]))merged[name]=(seedMrCommercePageSettings as any)[name]});
+    const saved=JSON.parse(localStorage.getItem(key)||"{}") as Partial<MrCommercePageSettings>;
+    const merged=mergeWithArrayDefaults(seedMrCommercePageSettings,saved,["stats","videoProofs","overviewCards","featureGroups","capabilityGroups","workflowSteps","freeFeatures","freeBenefits","proFeatures"] as const);
     if(!String(merged.freeDownloadUrl||"").trim())merged.freeDownloadUrl=seedMrCommercePageSettings.freeDownloadUrl;
     return merged;
   }catch{return seedMrCommercePageSettings}

@@ -7,12 +7,13 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     rules: {
-      // Vinext does not use Next's route manifest, so this rule reports valid links.
+      // The storefront intentionally uses plain anchors for its client-side catalog.
       "@next/next/no-html-link-for-pages": "off",
       // Existing client stores intentionally hydrate browser state after mounting.
       "react-hooks/set-state-in-effect": "off",
-      // Keep legacy integration boundaries visible without blocking the stability gate.
-      "@typescript-eslint/no-explicit-any": "warn",
+      // Catalog/admin images can be data URLs or user-managed remote URLs. They
+      // cannot safely use Next Image without a fixed loader/domain contract.
+      "@next/next/no-img-element": "off",
     },
   },
   // Override default ignores of eslint-config-next.

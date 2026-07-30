@@ -1,3 +1,5 @@
+import { mergeWithArrayDefaults } from "./storeUtils";
+
 export type ServicesPageSettings={
   heroVisible:boolean; servicesVisible:boolean; pricingVisible:boolean; fiverrVisible:boolean;
   heroEyebrow:string; heroLines:string[]; heroDescription:string;
@@ -38,11 +40,9 @@ const key="mr-services-page-settings";
 export function loadServicesPageSettings():ServicesPageSettings{
   if(typeof window==="undefined")return seedServicesPageSettings;
   try{
-    const saved=JSON.parse(localStorage.getItem(key)||"{}");
+    const saved=JSON.parse(localStorage.getItem(key)||"{}") as Partial<ServicesPageSettings>;
     const arrays=["heroLines","stats","panelLines","capabilities","panelProofs","packages","gigs","gigBenefits"] as const;
-    const merged:any={...seedServicesPageSettings,...saved};
-    arrays.forEach(name=>{if(!Array.isArray(saved[name]))merged[name]=seedServicesPageSettings[name]});
-    return merged;
+    return mergeWithArrayDefaults(seedServicesPageSettings,saved,arrays);
   }catch{return seedServicesPageSettings}
 }
 export function saveServicesPageSettings(settings:ServicesPageSettings){

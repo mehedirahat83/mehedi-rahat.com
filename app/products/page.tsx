@@ -9,10 +9,8 @@ export default function ProductsPage(){
   const [products,setProducts]=useState<StoreProduct[]>([]);
   const [category,setCategory]=useState("All products"),[query,setQuery]=useState("");
   const [selected,setSelected]=useState<Record<string,number>>({});
-  const [cartCount,setCartCount]=useState(0);
   useEffect(()=>{
     const sync=()=>setProducts(loadProducts().filter(x=>x.status==="Published"));sync();
-    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as {quantity:number}[];setCartCount(cart.reduce((a,x)=>a+x.quantity,0));
     window.addEventListener("mr-products-updated",sync);window.addEventListener("storage",sync);
     return()=>{window.removeEventListener("mr-products-updated",sync);window.removeEventListener("storage",sync)}
   },[]);

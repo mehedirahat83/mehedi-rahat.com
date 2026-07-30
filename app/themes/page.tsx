@@ -7,12 +7,10 @@ import MainHeader from "../MainHeader";
 function Arrow(){return <span aria-hidden="true">↗</span>}
 
 export default function ThemesPage(){
-  const [themes,setThemes]=useState<ReadyTheme[]>([]),[category,setCategory]=useState("All themes"),[query,setQuery]=useState(""),[cartCount,setCartCount]=useState(0);
+  const [themes,setThemes]=useState<ReadyTheme[]>([]),[category,setCategory]=useState("All themes"),[query,setQuery]=useState("");
   useEffect(()=>{
     const sync=()=>setThemes(loadThemes().filter(theme=>theme.status==="Published"));
     sync();
-    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as {quantity:number}[];
-    setCartCount(cart.reduce((total,item)=>total+item.quantity,0));
     window.addEventListener("mr-themes-updated",sync);window.addEventListener("storage",sync);
     return()=>{window.removeEventListener("mr-themes-updated",sync);window.removeEventListener("storage",sync)}
   },[]);

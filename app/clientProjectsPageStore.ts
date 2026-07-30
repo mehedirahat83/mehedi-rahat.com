@@ -1,3 +1,5 @@
+import { mergeWithArrayDefaults } from "./storeUtils";
+
 export type ClientProjectItem={title:string;category:string;description:string;url:string;linkLabel:string};
 export type ClientProjectsPageSettings={
  heroVisible:boolean;projectsVisible:boolean;heroEyebrow:string;heroLines:string[];heroDescription:string;
@@ -25,9 +27,8 @@ const key="mr-client-projects-page-settings";
 export function loadClientProjectsPageSettings():ClientProjectsPageSettings{
  if(typeof window==="undefined")return seedClientProjectsPageSettings;
  try{
-  const saved=JSON.parse(localStorage.getItem(key)||"{}"),merged:any={...seedClientProjectsPageSettings,...saved};
-  ["heroLines","cardLines","stats","countries","proofPoints","projects"].forEach(name=>{if(!Array.isArray(saved[name]))merged[name]=(seedClientProjectsPageSettings as any)[name]});
-  return merged;
+  const saved=JSON.parse(localStorage.getItem(key)||"{}") as Partial<ClientProjectsPageSettings>;
+  return mergeWithArrayDefaults(seedClientProjectsPageSettings,saved,["heroLines","cardLines","stats","countries","proofPoints","projects"] as const);
  }catch{return seedClientProjectsPageSettings}
 }
 export function saveClientProjectsPageSettings(settings:ClientProjectsPageSettings){

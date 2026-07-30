@@ -7,6 +7,7 @@ import { decodePackageFeatures,loadCategoryPackageFeatures,loadThemeFaq,loadThem
 function Arrow(){return <span aria-hidden="true">↗</span>}
 
 type ThemeReview={name:string;text:string;rating:number};
+type CartItem={id:string;name:string;category:string;variation:string;price:number;quantity:number};
 const defaultThemeReviews:ThemeReview[]=[
   {name:"Rifat Arannya",text:"Clean design, responsive layout and a very smooth setup experience.",rating:5},
   {name:"Maruf Ahmed",text:"The theme was easy to customize and the support was genuinely helpful.",rating:5},
@@ -14,13 +15,11 @@ const defaultThemeReviews:ThemeReview[]=[
 ];
 
 export default function ThemeDetailsPage(){
-  const [theme,setTheme]=useState<ReadyTheme|null>(null),[themes,setThemes]=useState<ReadyTheme[]>([]),[pack,setPack]=useState(0),[cartCount,setCartCount]=useState(0),[added,setAdded]=useState(false);
+  const [theme,setTheme]=useState<ReadyTheme|null>(null),[themes,setThemes]=useState<ReadyTheme[]>([]),[pack,setPack]=useState(0),[added,setAdded]=useState(false);
   const [themeReviews,setThemeReviews]=useState<ThemeReview[]>(defaultThemeReviews),[reviewOpen,setReviewOpen]=useState(false),[reviewSaved,setReviewSaved]=useState(false);
   useEffect(()=>{
     const id=new URLSearchParams(location.search).get("id"),all=loadThemes().filter(item=>item.status==="Published");
     setThemes(all);setTheme(all.find(item=>item.id===id)||null);
-    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as {quantity:number}[];
-    setCartCount(cart.reduce((total,item)=>total+item.quantity,0));
     if(id)try{const saved=JSON.parse(localStorage.getItem(`mr-theme-reviews-${id}`)||"null");if(Array.isArray(saved))setThemeReviews(saved)}catch{}
   },[]);
   if(!theme)return <main><div className="success-page"><div className="success-card"><h1>Theme not found.</h1><p>This theme may be unpublished or removed.</p><a className="button primary" href="/themes">Browse ready themes</a></div></div></main>;
@@ -36,10 +35,10 @@ export default function ThemeDetailsPage(){
   const faqs=loadThemeFaq().split("\n").filter(Boolean).map(row=>{const at=row.indexOf("|");return at<0?[row,"Please contact support for details."]:[row.slice(0,at),row.slice(at+1)]});
   const themeInformation=(theme.information||`CMS|WordPress\nBuilder|Elementor\nReady pages|${theme.pages}\nResponsive|Included\nSpeed ready|Included\nSEO structure|Included`).split("\n").filter(Boolean).map(row=>{const at=row.indexOf("|");return at<0?[row,""]:[row.slice(0,at),row.slice(at+1)]});
   function add(){
-    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as any[],id=`theme-${themeId}-${selected.label}`;
+    const cart=JSON.parse(localStorage.getItem("mr-cart")||"[]") as CartItem[],id=`theme-${themeId}-${selected.label}`;
     const exists=cart.find(item=>item.id===id);
     if(exists)exists.quantity++;else cart.push({id,name:themeName,category:"Ready Theme",variation:selected.label,price:selected.price,quantity:1});
-    localStorage.setItem("mr-cart",JSON.stringify(cart));setCartCount(cart.reduce((total,item)=>total+item.quantity,0));setAdded(true);
+    localStorage.setItem("mr-cart",JSON.stringify(cart));setAdded(true);
   }
   function submitReview(event:FormEvent<HTMLFormElement>){
     event.preventDefault();

@@ -59,12 +59,6 @@ const advantages = [
   ["Built for speed", "Lean code, optimized assets and careful engineering without unnecessary page-builder weight."],
 ];
 
-const testimonials = [
-  ["The whole process was simple and the final website feels much faster. Support was clear whenever we needed help.", "Arif Hossain", "Business Owner", "/client-arif-placeholder.webp"],
-  ["I received the product and activation support quickly. The instructions were easy to follow and everything worked.", "Nusrat Jahan", "Digital Marketer", "/client-nusrat-placeholder.webp"],
-  ["A dependable person for WordPress and web work. He understands the requirement before suggesting a solution.", "Tanvir Ahmed", "Agency Founder", "/client-tanvir-placeholder.webp"],
-];
-
 function Arrow() {
   return <span aria-hidden="true">↗</span>;
 }

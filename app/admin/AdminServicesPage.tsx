@@ -7,7 +7,11 @@ export default function AdminServicesPage(){
  const[data,setData]=useState<ServicesPageSettings>(seedServicesPageSettings),[message,setMessage]=useState("");
  useEffect(()=>setData(loadServicesPageSettings()),[]);
  const set=<K extends keyof ServicesPageSettings>(key:K,value:ServicesPageSettings[K])=>setData(c=>({...c,[key]:value}));
- const item=(key:"stats"|"capabilities"|"packages"|"gigs",index:number,field:string,value:string|boolean|string[])=>setData(c=>({...c,[key]:(c[key] as any[]).map((x,i)=>i===index?{...x,[field]:value}:x)}));
+ const item=(key:"stats"|"capabilities"|"packages"|"gigs",index:number,field:string,value:string|boolean|string[])=>setData(c=>{
+  const current:readonly unknown[]=c[key];
+  const updated=current.map((entry,i)=>i===index&&typeof entry==="object"&&entry!==null?{...entry,[field]:value}:entry);
+  return {...c,[key]:updated} as ServicesPageSettings;
+ });
  const save=()=>{saveServicesPageSettings(data);setMessage("Services Page saved and connected to the live page.")};
  return <main className="admin-root"><AdminSidebar active="pages"/><section className="admin-workspace"><Top/>
   <div className="admin-page-title"><div><span className="eyebrow">Website content</span><h1>Services Page Management</h1><p>Edit the complete Services Page from one place.</p></div><a href="/services" target="_blank">View Services Page ↗</a></div>

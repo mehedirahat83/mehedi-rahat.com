@@ -8,7 +8,6 @@ export default function AdminProductTools({mode}:{mode:"categories"|"variations"
   const [products,setProducts]=useState<StoreProduct[]>([]),[categories,setCategories]=useState<string[]>([]);
   const [selected,setSelected]=useState(""),[variations,setVariations]=useState<ProductVariation[]>([]),[faq,setFaq]=useState(""),[notice,setNotice]=useState("");
   useEffect(()=>{const all=loadProducts();setProducts(all);setCategories(loadCategories(all));setFaq(loadProductFaq());if(all[0]){setSelected(all[0].id);setVariations(all[0].variations)}},[]);
-  const current=products.find(x=>x.id===selected);
   function choose(id:string){setSelected(id);const p=products.find(x=>x.id===id);setVariations(p?.variations||[]);setNotice("")}
   function saveProduct(update:Partial<StoreProduct>){const next=products.map(x=>x.id===selected?{...x,...update}:x);setProducts(next);saveProducts(next);setNotice("Changes saved and connected to the storefront.")}
   function addCategory(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget),name=String(f.get("category")||"").trim();if(!name||categories.includes(name))return;const next=[...categories,name];setCategories(next);saveCategories(next);e.currentTarget.reset();setNotice(`${name} category added.`)}
