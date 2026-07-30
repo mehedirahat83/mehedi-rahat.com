@@ -8,6 +8,13 @@
       "when": 1785351704187,
       "tag": "0000_demonic_justin_hammer",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785396880761,
+      "tag": "0001_spooky_warstar",
+      "breakpoints": true
     }
   ]
 }

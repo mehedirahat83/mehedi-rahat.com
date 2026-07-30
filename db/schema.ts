@@ -1,4 +1,158 @@
-import { bigint, index, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  bigint,
+  check,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+export const productCategories = pgTable(
+  "product_categories",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status").notNull().default("active"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("product_categories_slug_uidx").on(table.slug),
+    uniqueIndex("product_categories_name_uidx").on(table.name),
+    index("product_categories_status_sort_idx").on(
+      table.status,
+      table.sortOrder,
+    ),
+    check(
+      "product_categories_status_check",
+      sql`${table.status} in ('active', 'inactive')`,
+    ),
+    check(
+      "product_categories_sort_order_check",
+      sql`${table.sortOrder} >= 0`,
+    ),
+  ],
+);
+
+export const products = pgTable(
+  "products",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => productCategories.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    license: text("license").notNull(),
+    status: text("status").notNull().default("draft"),
+    basePrice: integer("base_price").notNull(),
+    description: text("description").notNull().default(""),
+    features: text("features").notNull().default(""),
+    faq: text("faq").notNull().default(""),
+    demoUrl: text("demo_url").notNull().default(""),
+    activationType: text("activation_type")
+      .notNull()
+      .default("Assisted activation"),
+    ratingTenths: integer("rating_tenths").notNull().default(49),
+    reviewCount: integer("review_count").notNull().default(0),
+    imageUrl: text("image_url"),
+    imageName: text("image_name"),
+    downloadUrl: text("download_url"),
+    downloadName: text("download_name"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("products_slug_uidx").on(table.slug),
+    index("products_category_status_sort_idx").on(
+      table.categoryId,
+      table.status,
+      table.sortOrder,
+    ),
+    index("products_status_updated_idx").on(table.status, table.updatedAt),
+    check(
+      "products_license_check",
+      sql`${table.license} in ('One Year', 'Lifetime')`,
+    ),
+    check(
+      "products_status_check",
+      sql`${table.status} in ('published', 'draft')`,
+    ),
+    check("products_base_price_check", sql`${table.basePrice} >= 0`),
+    check(
+      "products_rating_tenths_check",
+      sql`${table.ratingTenths} between 0 and 50`,
+    ),
+    check("products_review_count_check", sql`${table.reviewCount} >= 0`),
+    check("products_sort_order_check", sql`${table.sortOrder} >= 0`),
+  ],
+);
+
+export const productVariations = pgTable(
+  "product_variations",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    price: integer("price").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("product_variations_product_label_uidx").on(
+      table.productId,
+      table.label,
+    ),
+    index("product_variations_product_sort_idx").on(
+      table.productId,
+      table.sortOrder,
+    ),
+    check("product_variations_price_check", sql`${table.price} >= 0`),
+    check(
+      "product_variations_sort_order_check",
+      sql`${table.sortOrder} >= 0`,
+    ),
+  ],
+);
+
+export const productInformation = pgTable(
+  "product_information",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    value: text("value").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [
+    index("product_information_product_sort_idx").on(
+      table.productId,
+      table.sortOrder,
+    ),
+    check(
+      "product_information_sort_order_check",
+      sql`${table.sortOrder} >= 0`,
+    ),
+  ],
+);
 
 export const enquiries = pgTable(
   "enquiries",

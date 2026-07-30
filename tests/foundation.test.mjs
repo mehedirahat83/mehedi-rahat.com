@@ -68,6 +68,29 @@ const checks = [
     assert.match(migration, /CREATE INDEX "enquiries_created_at_idx"/);
     assert.match(migration, /CREATE INDEX "enquiries_status_idx"/);
   }],
+  ["product catalog schema is normalized and production constrained", async () => {
+    const [schema, migration] = await Promise.all([
+      read("db/schema.ts"),
+      read("drizzle/0001_spooky_warstar.sql"),
+    ]);
+
+    assert.match(schema, /export const productCategories/);
+    assert.match(schema, /export const products/);
+    assert.match(schema, /export const productVariations/);
+    assert.match(schema, /export const productInformation/);
+    assert.match(schema, /products_category_status_sort_idx/);
+    assert.match(schema, /products_status_check/);
+    assert.match(schema, /products_license_check/);
+    assert.match(schema, /product_variations_product_label_uidx/);
+    assert.match(schema, /onDelete:\s*["']cascade["']/);
+    assert.match(migration, /CREATE TABLE "product_categories"/);
+    assert.match(migration, /CREATE TABLE "products"/);
+    assert.match(migration, /CREATE TABLE "product_variations"/);
+    assert.match(migration, /CREATE TABLE "product_information"/);
+    assert.match(migration, /CONSTRAINT "products_status_check"/);
+    assert.match(migration, /ON DELETE cascade/);
+    assert.match(migration, /CREATE UNIQUE INDEX "products_slug_uidx"/);
+  }],
   ["the production target is standard Next.js standalone", async () => {
     const [packageJson, nextConfig] = await Promise.all([
       read("package.json"),
