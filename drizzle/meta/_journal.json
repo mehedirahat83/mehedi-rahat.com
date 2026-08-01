@@ -15,6 +15,13 @@
       "when": 1785396880761,
       "tag": "0001_spooky_warstar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785405600000,
+      "tag": "0002_seed_product_catalog",
+      "breakpoints": true
     }
   ]
 }

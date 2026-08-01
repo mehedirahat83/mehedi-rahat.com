@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadProducts } from "./productStore";
+import { fetchPublishedProducts } from "./productApi";
 import { loadThemes } from "./themeStore";
 import { loadServices } from "./serviceStore";
 import { loadProjects } from "./projectStore";
@@ -26,16 +26,24 @@ export default function MainHeader({ active }: MainHeaderProps) {
       }
     };
     syncCart();
-    const products=loadProducts().filter(item=>item.status==="Published").map(item=>({title:item.name,type:"Pro Tool",href:`/product?id=${item.id}`,keywords:`${item.name} ${item.category}`}));
     const themes=loadThemes().filter(item=>item.status==="Published").map(item=>({title:item.name,type:"Ready Theme",href:`/theme?id=${item.id}`,keywords:`${item.name} ${item.category}`}));
     const services=loadServices().filter(item=>item.status==="Published").map(item=>({title:item.title,type:"Service",href:"/services",keywords:`${item.title} ${item.description}`}));
     const projects=loadProjects().filter(item=>item.status==="Published").map(item=>({title:item.title,type:"MR Exclusive",href:item.id==="mr-news-pro"?"/mr-news-pro":item.id==="mr-commerce-pro"?"/mr-commerce-pro":"/client-projects",keywords:`${item.title} ${item.category}`}));
-    setSearchItems([...products,...themes,...services,...projects]);
+    const nonProductItems=[...themes,...services,...projects];
+    setSearchItems(nonProductItems);
+    const controller=new AbortController();
+    void fetchPublishedProducts(controller.signal).then(products=>{
+      const productItems=products.map(item=>({title:item.name,type:"Pro Tool",href:`/product?id=${encodeURIComponent(item.slug)}`,keywords:`${item.name} ${item.category}`}));
+      setSearchItems([...productItems,...nonProductItems]);
+    }).catch(error=>{
+      if(!(error instanceof DOMException&&error.name==="AbortError"))setSearchItems(nonProductItems);
+    });
     window.addEventListener("storage", syncCart);
     window.addEventListener("mr-cart-updated", syncCart);
     return () => {
       window.removeEventListener("storage", syncCart);
       window.removeEventListener("mr-cart-updated", syncCart);
+      controller.abort();
     };
   }, []);
 
