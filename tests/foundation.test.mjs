@@ -120,6 +120,43 @@ const checks = [
     assert.match(detailRoute, /client\.query\(["']BEGIN["']\)/);
     assert.match(detailRoute, /DELETE FROM products WHERE id=\$1 OR slug=\$1/);
   }],
+  ["admin products use the authenticated API and the catalog is seeded", async () => {
+    const [adminProducts, seedMigration, journal] = await Promise.all([
+      read("app/admin/AdminProducts.tsx"),
+      read("drizzle/0002_seed_product_catalog.sql"),
+      read("drizzle/meta/_journal.json"),
+    ]);
+
+    assert.match(adminProducts, /\/api\/products\?include=drafts/);
+    assert.match(
+      adminProducts,
+      /method:\s*editing\s*\?\s*["']PATCH["']\s*:\s*["']POST["']/,
+    );
+    assert.match(adminProducts, /method:\s*["']DELETE["']/);
+    assert.doesNotMatch(adminProducts, /loadProducts|saveProducts|localStorage/);
+    assert.match(seedMigration, /INSERT INTO "product_categories"/);
+    assert.match(seedMigration, /INSERT INTO "products"/);
+    assert.match(seedMigration, /INSERT INTO "product_variations"/);
+    assert.match(seedMigration, /INSERT INTO "product_information"/);
+    assert.match(journal, /0002_seed_product_catalog/);
+  }],
+  ["public catalog and product details use the published products API", async () => {
+    const [catalog, details, header, api] = await Promise.all([
+      read("app/products/page.tsx"),
+      read("app/product/page.tsx"),
+      read("app/MainHeader.tsx"),
+      read("app/productApi.ts"),
+    ]);
+
+    assert.match(catalog, /fetchPublishedProducts/);
+    assert.match(details, /fetchPublishedProduct/);
+    assert.match(details, /fetchPublishedProducts/);
+    assert.match(header, /fetchPublishedProducts/);
+    assert.doesNotMatch(catalog, /loadProducts|localStorage/);
+    assert.doesNotMatch(details, /loadProducts|loadProductFaq/);
+    assert.match(api, /\/api\/products\?limit=100/);
+    assert.doesNotMatch(api, /include=drafts/);
+  }],
   ["the production target is standard Next.js standalone", async () => {
     const [packageJson, nextConfig] = await Promise.all([
       read("package.json"),
