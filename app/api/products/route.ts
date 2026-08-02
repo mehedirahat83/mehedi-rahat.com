@@ -1,6 +1,7 @@
 import { isAdminRequest } from "@/app/admin-auth";
 import { getPool } from "@/db";
 import {
+  activationLimitForVariation,
   databaseError,
   findProduct,
   listProducts,
@@ -105,8 +106,8 @@ export async function POST(request: Request) {
     for (const [index, variation] of (value.variations ?? []).entries()) {
       await client.query(
         `INSERT INTO product_variations
-          (id,product_id,label,price,sort_order) VALUES ($1,$2,$3,$4,$5)`,
-        [crypto.randomUUID(), id, variation.label, variation.price, index],
+          (id,product_id,label,price,activation_limit,sort_order) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [crypto.randomUUID(), id, variation.label, variation.price, activationLimitForVariation(variation.label), index],
       );
     }
     for (const [index, information] of (value.information ?? []).entries()) {

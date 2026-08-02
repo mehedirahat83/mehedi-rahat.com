@@ -3,7 +3,7 @@ import { getPool } from "@/db";
 
 export type ProductStatus = "published" | "draft";
 export type ProductLicense = "One Year" | "Lifetime";
-export type ProductVariationInput = { label: string; price: number };
+export type ProductVariationInput = { label: string; price: number; activationLimit?: number };
 export type ProductInformationInput = { label: string; value: string };
 
 export type ProductWriteInput = {
@@ -35,6 +35,7 @@ type ValidationResult =
 
 const licenses = new Set<ProductLicense>(["One Year", "Lifetime"]);
 const statuses = new Set<ProductStatus>(["published", "draft"]);
+export function activationLimitForVariation(label: string) { const match = label.match(/(\d+)\s*sites?/i); return match ? Math.max(1, Number(match[1])) : 1; }
 
 function has(object: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(object, key);
@@ -337,7 +338,7 @@ async function loadChildren(client: PoolClient, productIds: string[]) {
   }
   const [variationResult, informationResult] = await Promise.all([
     client.query(
-      `SELECT product_id,label,price FROM product_variations
+      `SELECT product_id,label,price,activation_limit FROM product_variations
        WHERE product_id=ANY($1::text[]) ORDER BY product_id,sort_order,id`,
       [productIds],
     ),
@@ -350,7 +351,7 @@ async function loadChildren(client: PoolClient, productIds: string[]) {
   const variations = new Map<string, ProductVariationInput[]>();
   for (const row of variationResult.rows) {
     const list = variations.get(row.product_id) ?? [];
-    list.push({ label: row.label, price: Number(row.price) });
+    list.push({ label: row.label, price: Number(row.price), activationLimit: Number(row.activation_limit) });
     variations.set(row.product_id, list);
   }
   const information = new Map<string, ProductInformationInput[]>();
