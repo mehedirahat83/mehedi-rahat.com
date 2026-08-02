@@ -157,6 +157,25 @@ const checks = [
     assert.match(api, /\/api\/products\?limit=100/);
     assert.doesNotMatch(api, /include=drafts/);
   }],
+  ["cart and checkout use server-validated pricing and persistent orders", async () => {
+    const [cartApi, ordersApi, cartPage, checkoutPage, catalog] = await Promise.all([
+      read("app/api/cart/validate/route.ts"),
+      read("app/api/orders/route.ts"),
+      read("app/cart/page.tsx"),
+      read("app/checkout/page.tsx"),
+      read("app/server/orderCatalog.ts"),
+    ]);
+    assert.match(cartApi, /resolveCheckoutItems/);
+    assert.match(ordersApi, /INSERT INTO orders/);
+    assert.match(ordersApi, /INSERT INTO order_items/);
+    assert.match(ordersApi, /INSERT INTO payment_submissions/);
+    assert.match(ordersApi, /idempotency_key/);
+    assert.match(catalog, /p\.status='published'/);
+    assert.match(catalog, /product_variations/);
+    assert.match(cartPage, /validateCart/);
+    assert.match(checkoutPage, /fetch\(["']\/api\/orders["']/);
+    assert.doesNotMatch(checkoutPage, /const\s+subtotal\s*=\s*useMemo/);
+  }],
   ["the production target is standard Next.js standalone", async () => {
     const [packageJson, nextConfig] = await Promise.all([
       read("package.json"),

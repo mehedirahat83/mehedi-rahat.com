@@ -8,16 +8,7 @@ import {
   type StorefrontProduct,
 } from "../productApi";
 import SiteFooter from "../SiteFooter";
-
-type CartItem = {
-  id: string;
-  productId?: string;
-  name: string;
-  category: string;
-  variation: string;
-  price: number;
-  quantity: number;
-};
+import { loadCart, saveCart } from "../cartStore";
 
 function Arrow() {
   return <span aria-hidden="true">↗</span>;
@@ -149,9 +140,7 @@ export default function ProductPage() {
 
   function add() {
     if (!product) return;
-    const cart = JSON.parse(
-      localStorage.getItem("mr-cart") || "[]",
-    ) as CartItem[];
+    const cart = loadCart();
     const cartId = `${product.id}-${variation.label}`;
     const existing = cart.find((item) => item.id === cartId);
     if (existing) {
@@ -167,8 +156,7 @@ export default function ProductPage() {
         quantity: 1,
       });
     }
-    localStorage.setItem("mr-cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("mr-cart-updated"));
+    saveCart(cart);
     setAdded(true);
   }
 
