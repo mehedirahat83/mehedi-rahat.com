@@ -4,6 +4,8 @@ export type CheckoutItemInput = {
   quantity?: unknown;
 };
 
+import { getPool } from "@/db";
+
 export type ResolvedOrderItem = {
   itemKey: string;
   name: string;
@@ -14,24 +16,6 @@ export type ResolvedOrderItem = {
   lineTotal: number;
 };
 
-const products = {
-  "elementor-pro": ["Elementor Pro", 300],
-  crocoblock: ["Crocoblock", 600],
-  "astra-pro-essential": ["Astra Pro Essential", 600],
-  "rank-math-pro": ["Rank Math Pro", 500],
-  "tutor-lms-pro": ["Tutor LMS Pro", 500],
-  "wp-rocket": ["WP Rocket", 400],
-  "fluent-forms-pro": ["Fluent Forms Pro", 450],
-  "essential-addons": ["Essential Addons", 350],
-  "cartflows-pro": ["CartFlows Pro", 500],
-  "wp-social-ninja-pro": ["WP Social Ninja Pro", 450],
-  "divi-theme": ["Divi Theme", 550],
-  "learndash-lms": ["LearnDash LMS", 700],
-  "wpforms-pro": ["WPForms Pro", 450],
-  perfmatters: ["Perfmatters", 400],
-  "yoast-seo-premium": ["Yoast SEO Premium", 450],
-} as const;
-
 const themes = {
   "corporate-pro": ["Corporate Pro", 8500],
   "shop-essential": ["Shop Essential", 12500],
@@ -40,22 +24,6 @@ const themes = {
   "clinic-care": ["Clinic Care", 12000],
   "course-academy": ["Course Academy", 18000],
 } as const;
-
-const productMultipliers: Record<string, number> = {
-  "01 Site": 1,
-  "05 Sites": 1.5,
-  "10 Sites": 2,
-  "50 Sites": 3,
-  "100 Sites": 4,
-};
-
-function normaliseProductVariation(value: string) {
-  const compact = value.trim().toLowerCase().replace(/[-_]+/g, " ");
-  const match = Object.keys(productMultipliers).find(
-    (label) => label.toLowerCase() === compact,
-  );
-  return match ?? null;
-}
 
 function normaliseThemePack(value: string) {
   const match = value.match(/pack\s*0?([123])/i);
@@ -70,22 +38,23 @@ function safeQuantity(value: unknown) {
   return quantity;
 }
 
-export function resolveCheckoutItems(
+export async function resolveCheckoutItems(
   inputs: CheckoutItemInput[],
   completedCommerceSales: number,
-): ResolvedOrderItem[] {
+): Promise<ResolvedOrderItem[]> {
   if (!Array.isArray(inputs) || inputs.length === 0 || inputs.length > 25) {
     throw new Error("Your cart is empty or contains too many items.");
   }
 
-  return inputs.map((input) => {
+  const resolved: ResolvedOrderItem[] = [];
+  for (const input of inputs) {
     const id = String(input.id ?? "").trim().toLowerCase();
     const requestedVariation = String(input.variation ?? "").trim();
     const quantity = safeQuantity(input.quantity);
 
     if (id === "mr-commerce-pro-license") {
       const unitPrice = completedCommerceSales < 20 ? 3000 : 5000;
-      return {
+      resolved.push({
         itemKey: "mr-commerce-pro-license",
         name: "MR Commerce Pro",
         category: "MR Exclusive",
@@ -93,7 +62,8 @@ export function resolveCheckoutItems(
         unitPrice,
         quantity,
         lineTotal: unitPrice * quantity,
-      };
+      });
+      continue;
     }
 
     if (id.startsWith("theme-")) {
@@ -107,7 +77,7 @@ export function resolveCheckoutItems(
       const multiplier = pack === "Pack 01" ? 1 : pack === "Pack 02" ? 1.45 : 1.9;
       const unitPrice =
         pack === "Pack 01" ? basePrice : Math.ceil((basePrice * multiplier) / 500) * 500;
-      return {
+      resolved.push({
         itemKey: themeKey,
         name,
         category: "Ready Theme",
@@ -115,29 +85,41 @@ export function resolveCheckoutItems(
         unitPrice,
         quantity,
         lineTotal: unitPrice * quantity,
-      };
+      });
+      continue;
     }
 
-    const productKey = Object.keys(products)
-      .sort((a, b) => b.length - a.length)
-      .find((key) => id === key || id.startsWith(`${key}-`));
-    if (!productKey) throw new Error(`Unknown product item: ${id}`);
-    const variation = normaliseProductVariation(requestedVariation || id);
-    if (!variation) throw new Error("Invalid product variation.");
-    const [name, basePrice] = products[productKey as keyof typeof products];
-    const multiplier = productMultipliers[variation];
-    const unitPrice =
-      multiplier === 1 ? basePrice : Math.ceil((basePrice * multiplier) / 50) * 50;
-    return {
-      itemKey: productKey,
-      name,
-      category: "Pro Tool",
-      variation,
+    const productId = String(input.id ?? "").trim().toLowerCase();
+    const result = await getPool().query<{
+      id: string;
+      name: string;
+      category: string;
+      label: string;
+      price: number;
+    }>(
+      `SELECT p.id,p.name,c.name AS category,v.label,v.price
+       FROM products p
+       INNER JOIN product_categories c ON c.id=p.category_id
+       INNER JOIN product_variations v ON v.product_id=p.id
+       WHERE (p.id=$1 OR p.slug=$1) AND p.status='published'
+         AND lower(v.label)=lower($2)
+       LIMIT 1`,
+      [productId, requestedVariation],
+    );
+    const product = result.rows[0];
+    if (!product) throw new Error("A product or variation in your cart is no longer available.");
+    const unitPrice = Number(product.price);
+    resolved.push({
+      itemKey: product.id,
+      name: product.name,
+      category: product.category,
+      variation: product.label,
       unitPrice,
       quantity,
       lineTotal: unitPrice * quantity,
-    };
-  });
+    });
+  }
+  return resolved;
 }
 
 export function calculateOrderTotals(
