@@ -157,6 +157,25 @@ const checks = [
     assert.match(api, /\/api\/products\?limit=100/);
     assert.doesNotMatch(api, /include=drafts/);
   }],
+  ["product permalinks use slugs and permanently redirect legacy query URLs", async () => {
+    const [productPage, productRoute, catalog, header, adminProducts, proxy] = await Promise.all([
+      read("app/product/page.tsx"),
+      read("app/product/[slug]/page.tsx"),
+      read("app/products/page.tsx"),
+      read("app/MainHeader.tsx"),
+      read("app/admin/AdminProducts.tsx"),
+      read("proxy.ts"),
+    ]);
+
+    assert.match(productRoute, /ProductPage identifier=\{slug\}/);
+    assert.match(productPage, /routeIdentifier/);
+    assert.match(catalog, /\/product\/\$\{encodeURIComponent\(product\.slug\)\}/);
+    assert.match(header, /\/product\/\$\{encodeURIComponent\(item\.slug\)\}/);
+    assert.match(adminProducts, /\/product\/\$\{encodeURIComponent\(product\.slug\)\}/);
+    assert.match(proxy, /request\.nextUrl\.pathname === "\/product"/);
+    assert.match(proxy, /"elementor-pro": "elementor-pro-license-key"/);
+    assert.match(proxy, /NextResponse\.redirect\(destination, 308\)/);
+  }],
   ["cart and checkout use server-validated pricing and persistent orders", async () => {
     const [cartApi, ordersApi, cartPage, checkoutPage, catalog] = await Promise.all([
       read("app/api/cart/validate/route.ts"),

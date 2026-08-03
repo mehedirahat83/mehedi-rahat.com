@@ -33,7 +33,7 @@ export default function MainHeader({ active }: MainHeaderProps) {
     setSearchItems(nonProductItems);
     const controller=new AbortController();
     void fetchPublishedProducts(controller.signal).then(products=>{
-      const productItems=products.map(item=>({title:item.name,type:"Pro Tool",href:`/product?id=${encodeURIComponent(item.slug)}`,keywords:`${item.name} ${item.category}`}));
+      const productItems=products.map(item=>({title:item.name,type:"Pro Tool",href:`/product/${encodeURIComponent(item.slug)}`,keywords:`${item.name} ${item.category}`}));
       setSearchItems([...productItems,...nonProductItems]);
     }).catch(error=>{
       if(!(error instanceof DOMException&&error.name==="AbortError"))setSearchItems(nonProductItems);
