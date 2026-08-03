@@ -14,7 +14,7 @@ export default function SiteFooter() {
         <div className="footer-menu"><h3>Pro tools</h3><a href="/products">WordPress Themes</a><a href="/products">WordPress Plugins</a><a href="/products">Elementor Addons</a><a href="/products">Page Builders</a><a href="/products">Form Builders</a><a href="/products">Affiliate Marketing</a></div>
       </div>
       <div className="shell footer-pill">
-        <nav aria-label="Footer navigation"><a href="/about">About</a><a href="/#contact">Contact</a><a href="/#testimonials">Testimonials</a><a href="/#refund">Refund Policy</a><a href="/#terms">Terms &amp; Conditions</a><a href="/#privacy">Privacy policy</a><a href="/#faq">FAQ</a><a href="/#blog">Blog</a></nav>
+        <nav aria-label="Footer navigation"><a href="/about">About</a><a href="/#contact">Contact</a><a href="/#testimonials">Testimonials</a><a className="footer-review-link" href="/customer-reviews">Customer Reviews</a><a href="/#refund">Refund Policy</a><a href="/#terms">Terms &amp; Conditions</a><a href="/#privacy">Privacy policy</a><a href="/#faq">FAQ</a><a href="/#blog">Blog</a></nav>
         <div className="payment-badges" aria-label="Accepted payment methods"><span>bKash</span><span>Nagad</span><span>Rocket</span><span>Payoneer</span><span>Wise</span><span>Fiverr</span></div>
       </div>
     </footer>

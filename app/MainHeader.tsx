@@ -9,12 +9,14 @@ import { loadProjects } from "./projectStore";
 type MainHeaderProps = {
   active?: "home" | "services" | "exclusive" | "themes" | "products" | "projects" | "contact";
 };
+type CustomerProfile = { name: string; email: string };
 
 export default function MainHeader({ active }: MainHeaderProps) {
   const [cartCount, setCartCount] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchItems, setSearchItems] = useState<{title:string;type:string;href:string;keywords:string}[]>([]);
+  const [customer, setCustomer] = useState<CustomerProfile | null>(null);
 
   useEffect(() => {
     const syncCart = () => {
@@ -47,6 +49,15 @@ export default function MainHeader({ active }: MainHeaderProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/customer/session", { cache: "no-store", signal: controller.signal })
+      .then(async response => response.ok ? response.json() as Promise<{ customer: CustomerProfile }> : null)
+      .then(result => setCustomer(result?.customer || null))
+      .catch(error => { if (!(error instanceof DOMException && error.name === "AbortError")) setCustomer(null); });
+    return () => controller.abort();
+  }, []);
+
   const linkClass = (name: MainHeaderProps["active"]) => active === name ? "active-nav" : undefined;
   const results=query.trim()
     ? searchItems.filter(item=>`${item.title} ${item.keywords}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0,7)
@@ -60,7 +71,7 @@ export default function MainHeader({ active }: MainHeaderProps) {
           <div>
             <span>Support: 10AM–10PM</span>
             <a href="/#membership">Membership benefits</a>
-            <a className="top-account" href="/account"><i aria-hidden="true">M</i><span><b>My Account</b><small>Orders &amp; membership</small></span><strong aria-hidden="true">→</strong></a>
+            <a className={`top-account ${customer ? "is-signed-in" : ""}`} href={customer ? "/account" : "/login"}><i aria-hidden="true">{customer?.name.trim().charAt(0).toUpperCase() || "M"}</i><span><b>{customer?.name || "My Account"}</b><small>{customer ? "Signed in · Dashboard" : "Sign in · Orders & membership"}</small></span><strong aria-hidden="true">→</strong></a>
           </div>
         </div>
       </div>
@@ -97,7 +108,7 @@ export default function MainHeader({ active }: MainHeaderProps) {
               <a className="mobile-sub-link" href="/mr-commerce-pro">MR Commerce Pro</a>
               <a className="mobile-sub-link" href="/mr-news-pro">MR News Pro</a>
               <a className="mobile-sub-link" href="/themes">Ready Themes</a>
-              <a href="/products">Pro Tools</a><a href="/client-projects">Client Projects</a><a href="/contact">Contact</a><a href="/account">My Account</a>
+              <a href="/products">Pro Tools</a><a href="/client-projects">Client Projects</a><a href="/contact">Contact</a><a href={customer ? "/account" : "/login"}>{customer ? "My Dashboard" : "Sign in"}</a>
             </nav>
           </details>
         </div>

@@ -34,12 +34,12 @@ export default function HomePopularTools() {
         <div className="product-grid">
           {products.map((product, index) => (
             <article className="product-card reveal" key={product.id}>
-              <div className={`product-art product-art-${(index % 10) + 1}${product.imageUrl ? " product-art--featured" : ""}`}>
+              <a className={`product-art product-art-link product-art-${(index % 10) + 1}${product.imageUrl ? " product-art--featured" : ""}`} href={`/product/${encodeURIComponent(product.slug)}`} aria-label={`View ${product.name}`}>
                 {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <div className="product-logo">{product.name.slice(0, 1)}</div>}
                 <div className="product-art-lines"><i /><i /><i /></div>
-              </div>
+              </a>
               <div className="product-copy">
-                <h3>{product.name}</h3>
+                <h3><a href={`/product/${encodeURIComponent(product.slug)}`}>{product.name}</a></h3>
                 <div className="product-price">৳ {product.price.toLocaleString("en-US")}</div>
                 <div className="product-meta"><span>{variationSummary(product)}</span><span>Instant access</span></div>
                 <div className="product-footer"><span>{product.activationType || "Assisted activation"}</span><a href={`/product/${product.slug}`} aria-label={`View ${product.name}`}>View details <Arrow /></a></div>

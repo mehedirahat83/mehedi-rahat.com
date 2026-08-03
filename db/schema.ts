@@ -73,6 +73,7 @@ export const products = pgTable(
     imageName: text("image_name"),
     downloadUrl: text("download_url"),
     downloadName: text("download_name"),
+    resellUrl: text("resell_url").notNull().default("#resell"),
     sortOrder: integer("sort_order").notNull().default(0),
     homepageFeatured: boolean("homepage_featured").notNull().default(false),
     homepageSortOrder: integer("homepage_sort_order").notNull().default(0),
@@ -171,6 +172,47 @@ export const productInformation = pgTable(
   ],
 );
 
+export const productReviews = pgTable(
+  "product_reviews",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    rating: integer("rating").notNull(),
+    body: text("body").notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedBy: text("reviewed_by"),
+  },
+  (table) => [
+    index("product_reviews_product_status_created_idx").on(
+      table.productId,
+      table.status,
+      table.createdAt,
+    ),
+    check("product_reviews_rating_check", sql`${table.rating} between 1 and 5`),
+    check(
+      "product_reviews_status_check",
+      sql`${table.status} in ('pending', 'approved', 'rejected')`,
+    ),
+  ],
+);
+
+export const productReviewSubmissions = pgTable(
+  "product_review_submissions",
+  {
+    id: text("id").primaryKey(),
+    fingerprint: text("fingerprint").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("product_review_submissions_fingerprint_created_idx").on(table.fingerprint, table.createdAt)],
+);
+
 export const enquiries = pgTable(
   "enquiries",
   {
@@ -211,7 +253,6 @@ export const orders = pgTable(
   {
     id: text("id").primaryKey(),
     orderNumber: text("order_number").notNull().unique(),
-    receiptTokenHash: text("receipt_token_hash").notNull(),
     customerId: text("customer_id")
       .notNull()
       .references(() => customers.id),
@@ -328,6 +369,17 @@ export const entitlements = pgTable(
   ],
 );
 
+export const customerAccounts = pgTable(
+  "customer_accounts",
+  { customerId: text("customer_id").primaryKey().references(() => customers.id, { onDelete: "cascade" }), passwordHash: text("password_hash").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull() },
+);
+
+export const customerPasswordResets = pgTable(
+  "customer_password_resets",
+  { id: text("id").primaryKey(), customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }), tokenHash: text("token_hash").notNull().unique(), expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), usedAt: timestamp("used_at", { withTimezone: true }), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow() },
+  (table) => [index("customer_password_resets_customer_idx").on(table.customerId)],
+);
+
 export const licenseActivations = pgTable(
   "license_activations",
   {
@@ -380,5 +432,38 @@ export const emailOutbox = pgTable(
   (table) => [
     index("email_outbox_status_idx").on(table.status),
     index("email_outbox_order_idx").on(table.orderId),
+  ],
+);
+
+export const smtpSettings = pgTable("smtp_settings", {
+  id: text("id").primaryKey(),
+  host: text("host").notNull(),
+  port: integer("port").notNull(),
+  secure: boolean("secure").notNull().default(false),
+  username: text("username").notNull(),
+  passwordEncrypted: text("password_encrypted").notNull(),
+  fromEmail: text("from_email").notNull(),
+  fromName: text("from_name").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const membershipTiers = pgTable(
+  "membership_tiers",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    minimumSpend: integer("minimum_spend").notNull().default(0),
+    discountPercent: integer("discount_percent").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("membership_tiers_name_uidx").on(table.name),
+    index("membership_tiers_active_sort_idx").on(table.active, table.sortOrder),
+    check("membership_tiers_minimum_spend_check", sql`${table.minimumSpend} >= 0`),
+    check("membership_tiers_discount_percent_check", sql`${table.discountPercent} between 0 and 100`),
   ],
 );

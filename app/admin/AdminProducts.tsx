@@ -14,6 +14,14 @@ import AdminSidebar from "./AdminSidebar";
 type ProductStatus = "published" | "draft";
 type ProductVariation = { label: string; price: number };
 type ProductInformation = { label: string; value: string };
+type ProductReview = {
+  id: string;
+  authorName: string;
+  rating: number;
+  body: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+};
 type ApiProduct = {
   id: string;
   slug: string;
@@ -34,6 +42,7 @@ type ApiProduct = {
   imageName: string | null;
   downloadUrl: string | null;
   downloadName: string | null;
+  resellUrl: string;
   homepageFeatured: boolean;
   homepageSortOrder: number;
   variations: ProductVariation[];
@@ -86,6 +95,8 @@ export default function AdminProducts({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [productReviews, setProductReviews] = useState<ProductReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -109,6 +120,27 @@ export default function AdminProducts({
     }
   }, []);
 
+  const loadProductReviews = useCallback(async (productId: string) => {
+    setReviewsLoading(true);
+    try {
+      const body = await readJson<{ reviews: ProductReview[] }>(
+        await fetch(
+          `/api/products/${encodeURIComponent(productId)}/reviews?include=all`,
+          { cache: "no-store" },
+        ),
+      );
+      setProductReviews(body.reviews);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Reviews could not be loaded.",
+      );
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       const all = await loadAll();
@@ -127,8 +159,9 @@ export default function AdminProducts({
       setDescription(product.description);
       setImageUrl(product.imageUrl || "");
       setImageName(product.imageName || "");
+      void loadProductReviews(product.id);
     })();
-  }, [loadAll, mode]);
+  }, [loadAll, loadProductReviews, mode]);
 
   const categories = useMemo(
     () =>
@@ -211,6 +244,41 @@ export default function AdminProducts({
     }
   }
 
+  async function moderateReview(
+    reviewId: string,
+    status: "approved" | "rejected",
+  ) {
+    if (!editing) return;
+    setError("");
+    setMessage("");
+    try {
+      await readJson(
+        await fetch(`/api/products/${encodeURIComponent(editing.id)}/reviews`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reviewId, status }),
+        }),
+      );
+      await loadProductReviews(editing.id);
+      const body = await readJson<{ product: ApiProduct }>(
+        await fetch(`/api/products/${encodeURIComponent(editing.id)}?include=drafts`, {
+          cache: "no-store",
+        }),
+      );
+      setEditing(body.product);
+      setProducts((current) =>
+        current.map((item) => (item.id === body.product.id ? body.product : item)),
+      );
+      setMessage(`Review ${status}.`);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "The review could not be updated.",
+      );
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -236,12 +304,13 @@ export default function AdminProducts({
       activationType: String(
         form.get("activationType") || "Assisted activation",
       ),
-      rating: Number(form.get("rating") || 0),
-      reviewCount: Number(form.get("reviewCount") || 0),
+      rating: editing?.rating ?? 0,
+      reviewCount: editing?.reviewCount ?? 0,
       imageUrl: imageUrl || null,
       imageName: imageName || null,
       downloadUrl: String(form.get("downloadUrl") || "") || null,
       downloadName: String(form.get("downloadName") || "") || null,
+      resellUrl: String(form.get("resellUrl") || "") || "#resell",
       homepageFeatured: String(form.get("homepageFeatured") || "false") === "true",
       homepageSortOrder: Number(form.get("homepageSortOrder") || 0),
       variations,
@@ -556,21 +625,14 @@ export default function AdminProducts({
                       </Field>
                       <Field label="Rating score (0–5)" error={fieldErrors.rating}>
                         <input
-                          name="rating"
-                          type="number"
-                          min="0"
-                          max="5"
-                          step="0.1"
-                          defaultValue={editing?.rating ?? 4.9}
+                          readOnly
+                          value={`${editing?.rating ?? 0} average from ${editing?.reviewCount ?? 0} approved reviews`}
                         />
                       </Field>
                       <Field label="Verified review count">
                         <input
-                          name="reviewCount"
-                          type="number"
-                          min="0"
-                          step="1"
-                          defaultValue={editing?.reviewCount ?? 5}
+                          readOnly
+                          value="Automatically calculated from approved reviews"
                         />
                       </Field>
                     </div>
@@ -734,6 +796,47 @@ export default function AdminProducts({
                       />
                     </Field>
                   </EditorCard>
+                  {editing && (
+                    <EditorCard title="Customer reviews">
+                      <p className="editor-card-note">
+                        Customer submissions stay pending until you approve or reject them. Only approved reviews affect the public rating and verified-review count.
+                      </p>
+                      <div className="product-review-moderation">
+                        {reviewsLoading ? (
+                          <p>Loading reviews...</p>
+                        ) : productReviews.length ? (
+                          productReviews.map((review) => (
+                            <article key={review.id}>
+                              <div>
+                                <b>{review.authorName}</b>
+                                <span>{"★".repeat(review.rating)}</span>
+                                <small>{review.status}</small>
+                              </div>
+                              <p>{review.body}</p>
+                              {review.status === "pending" && (
+                                <footer>
+                                  <button
+                                    type="button"
+                                    onClick={() => void moderateReview(review.id, "approved")}
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void moderateReview(review.id, "rejected")}
+                                  >
+                                    Reject
+                                  </button>
+                                </footer>
+                              )}
+                            </article>
+                          ))
+                        ) : (
+                          <p>No reviews submitted for this product yet.</p>
+                        )}
+                      </div>
+                    </EditorCard>
+                  )}
                 </div>
                 <aside className="product-editor-side">
                   <EditorCard title="Catalog feature image">
@@ -780,6 +883,13 @@ export default function AdminProducts({
                         name="downloadName"
                         defaultValue={editing?.downloadName || ""}
                         placeholder="product.zip"
+                      />
+                    </Field>
+                    <Field label="Resell Our Tools link" error={fieldErrors.resellUrl}>
+                      <input
+                        name="resellUrl"
+                        defaultValue={editing?.resellUrl || "#resell"}
+                        placeholder="/resell or https://..."
                       />
                     </Field>
                     <Field label="Activation type">

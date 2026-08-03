@@ -22,6 +22,7 @@ export type StorefrontProduct = {
   imageName: string | null;
   downloadUrl: string | null;
   downloadName: string | null;
+  resellUrl: string;
   homepageFeatured: boolean;
   homepageSortOrder: number;
   variations: ProductVariation[];

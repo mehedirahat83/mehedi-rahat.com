@@ -123,6 +123,7 @@ const checks = [
     assert.match(detailRoute, /DELETE FROM products WHERE id=\$1 OR slug=\$1/);
     assert.match(shared, /listHomepageProducts/);
     assert.match(shared, /o\.status='completed'/);
+    assert.match(shared, /orderByCompletedSales/);
   }],
   ["admin products use the authenticated API and the catalog is seeded", async () => {
     const [adminProducts, seedMigration, journal, productValidation] = await Promise.all([
@@ -181,6 +182,17 @@ const checks = [
     assert.match(migration, /homepage_featured/);
     assert.match(migration, /homepage_sort_order/);
   }],
+  ["product resell links are managed through the product editor", async () => {
+    const [adminProducts, productPage, migration] = await Promise.all([
+      read("app/admin/AdminProducts.tsx"),
+      read("app/product/page.tsx"),
+      read("drizzle/0009_product_resell_links.sql"),
+    ]);
+    assert.match(adminProducts, /Resell Our Tools link/);
+    assert.match(adminProducts, /name="resellUrl"/);
+    assert.match(productPage, /product\.resellUrl/);
+    assert.match(migration, /resell_url/);
+  }],
   ["product permalinks use slugs and permanently redirect legacy query URLs", async () => {
     const [productPage, productRoute, catalog, header, adminProducts, proxy] = await Promise.all([
       read("app/product/page.tsx"),
@@ -220,7 +232,7 @@ const checks = [
     assert.match(checkoutPage, /fetch\(["']\/api\/orders["']/);
     assert.doesNotMatch(checkoutPage, /const\s+subtotal\s*=\s*useMemo/);
   }],
-  ["phase 3 order management is authenticated, audited and customer-token scoped", async () => {
+  ["phase 3 order management is authenticated, audited and customer-account scoped", async () => {
     const [adminList, adminDetail, customerTracking, access, adminUi, migration, schema] = await Promise.all([
       read("app/api/admin/orders/route.ts"), read("app/api/admin/orders/[id]/route.ts"),
       read("app/api/orders/[number]/route.ts"), read("app/server/orderAccess.ts"),
@@ -233,9 +245,9 @@ const checks = [
     assert.match(adminDetail, /INSERT INTO entitlements/);
     assert.match(adminDetail, /ON CONFLICT \(order_item_id\) DO UPDATE/);
     assert.match(adminDetail, /status='revoked'/);
-    assert.match(customerTracking, /receipt_token_hash/);
+    assert.match(customerTracking, /customerId\(request\)/);
     assert.match(customerTracking, /Cache-Control/);
-    assert.match(access, /sha256/);
+    assert.match(access, /license_activations/);
     assert.match(adminUi, /api\/admin\/orders/);
     assert.doesNotMatch(adminUi, /localStorage|updateStoredOrderStatus/);
     assert.match(migration, /entitlements_order_item_uidx/);
@@ -266,6 +278,46 @@ const checks = [
     assert.match(migration, /UPDATE "entitlements"/);
     assert.match(adminUi, /License Summary/);
     assert.match(adminUi, /Add domain/);
+  }],
+  ["product reviews are database-backed and require admin approval", async () => {
+    const [schema, migration, route, productPage, adminProducts] = await Promise.all([
+      read("db/schema.ts"), read("drizzle/0010_product_reviews.sql"),
+      read("app/api/products/[id]/reviews/route.ts"), read("app/product/page.tsx"),
+      read("app/admin/AdminProducts.tsx"),
+    ]);
+    assert.match(schema, /export const productReviews/);
+    assert.match(migration, /CREATE TABLE "product_reviews"/);
+    assert.match(route, /isAdminRequest/);
+    assert.match(route, /status='approved'/);
+    assert.match(route, /review_count/);
+    assert.match(route, /product_review_submissions/);
+    assert.match(route, /Too many review submissions/);
+    assert.match(productPage, /submitted for approval/);
+    assert.match(adminProducts, /Customer reviews/);
+    assert.match(adminProducts, /moderateReview/);
+  }],
+  ["customer review directory lists approved reviews newest first with pagination", async () => {
+    const [route, page, footer] = await Promise.all([
+      read("app/api/reviews/route.ts"), read("app/customer-reviews/page.tsx"),
+      read("app/SiteFooter.tsx"),
+    ]);
+    assert.match(route, /status='approved'/);
+    assert.match(route, /ORDER BY r\.created_at DESC/);
+    assert.match(route, /const PAGE_SIZE = 20/);
+    assert.match(page, /api\/reviews\?page=/);
+    assert.match(page, /Purchased/);
+    assert.match(page, /Page \{page\} of \{pages\}/);
+    assert.match(footer, /customer-reviews/);
+  }],
+  ["public pages use the shared footer without legacy hidden copies", async () => {
+    const [home, legacyProduct, styles] = await Promise.all([
+      read("app/page.tsx"), read("app/products/elementor-pro/page.tsx"), read("app/globals.css"),
+    ]);
+    assert.match(home, /<SiteFooter\s*\/>/);
+    assert.match(legacyProduct, /<SiteFooter\s*\/>/);
+    assert.doesNotMatch(home, /premium-footer-grid/);
+    assert.doesNotMatch(legacyProduct, /legacy-footer/);
+    assert.doesNotMatch(styles, /\.legacy-footer/);
   }],
   ["the production target is standard Next.js standalone", async () => {
     const [packageJson, nextConfig] = await Promise.all([

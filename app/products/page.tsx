@@ -151,8 +151,10 @@ export default function ProductsPage() {
                   };
                 return (
                   <article className="catalog-card" key={product.id}>
-                    <div
-                      className={`catalog-art catalog-art-${(index % 5) + 1}${product.imageUrl ? " catalog-art--featured" : ""}`}
+                    <a
+                      className={`catalog-art catalog-art-link catalog-art-${(index % 5) + 1}${product.imageUrl ? " catalog-art--featured" : ""}`}
+                      href={`/product/${encodeURIComponent(product.slug)}`}
+                      aria-label={`View ${product.name}`}
                       style={product.imageUrl ? { margin: 0, borderRadius: "14px 14px 0 0" } : undefined}
                     >
                       {product.imageUrl ? (
@@ -165,9 +167,9 @@ export default function ProductsPage() {
                         <i />
                         <i />
                       </div>
-                    </div>
+                    </a>
                     <div className="catalog-copy">
-                      <h3>{product.name}</h3>
+                      <h3><a href={`/product/${encodeURIComponent(product.slug)}`}>{product.name}</a></h3>
                       <div className="catalog-price">
                         ৳ {variation.price.toLocaleString("en-US")}
                       </div>

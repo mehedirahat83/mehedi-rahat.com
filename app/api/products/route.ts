@@ -35,7 +35,12 @@ export async function GET(request: Request) {
   try {
     const products = homepageOnly
       ? await listHomepageProducts(limit)
-      : await listProducts({ includeDrafts, limit, offset });
+      : await listProducts({
+          includeDrafts,
+          limit,
+          offset,
+          orderByCompletedSales: !includeDrafts,
+        });
     return Response.json(
       {
         ok: true,
@@ -81,10 +86,10 @@ export async function POST(request: Request) {
       `INSERT INTO products
         (id,slug,category_id,name,license,status,base_price,description,features,
          faq,demo_url,activation_type,rating_tenths,review_count,image_url,
-         image_name,download_url,download_name,sort_order,homepage_featured,
+         image_name,download_url,download_name,resell_url,sort_order,homepage_featured,
          homepage_sort_order,created_at,updated_at)
        VALUES
-        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,now(),now())`,
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,now(),now())`,
       [
         id,
         slug,
@@ -104,6 +109,7 @@ export async function POST(request: Request) {
         value.imageName ?? null,
         value.downloadUrl ?? null,
         value.downloadName ?? null,
+        value.resellUrl ?? "#resell",
         value.sortOrder ?? 0,
         value.homepageFeatured ?? false,
         value.homepageSortOrder ?? 0,

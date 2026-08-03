@@ -24,6 +24,7 @@ export type ProductWriteInput = {
   imageName?: string | null;
   downloadUrl?: string | null;
   downloadName?: string | null;
+  resellUrl?: string;
   sortOrder?: number;
   homepageFeatured?: boolean;
   homepageSortOrder?: number;
@@ -61,6 +62,7 @@ function isSafeResourceUrl(value: string | null) {
   if (!value) return true;
   if (/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/]+={0,2}$/i.test(value)) return true;
   if (value.startsWith("/")) return !value.startsWith("//");
+  if (value.startsWith("#")) return value.length > 1;
   try {
     const url = new URL(value);
     return url.protocol === "https:" || url.protocol === "http:";
@@ -152,6 +154,13 @@ export function validateProductInput(
     value.demoUrl = text(body.demoUrl, 2048);
     if (!isSafeResourceUrl(value.demoUrl)) {
       fields.demoUrl = "Use a valid HTTP(S) or site-relative URL.";
+    }
+  }
+
+  if (has(body, "resellUrl")) {
+    value.resellUrl = text(body.resellUrl, 2048) || "#resell";
+    if (!isSafeResourceUrl(value.resellUrl)) {
+      fields.resellUrl = "Use a valid HTTP(S) or site-relative URL.";
     }
   }
 
@@ -303,6 +312,7 @@ type ProductRow = QueryResultRow & {
   image_name: string | null;
   download_url: string | null;
   download_name: string | null;
+  resell_url: string;
   sort_order: number;
   homepage_featured: boolean;
   homepage_sort_order: number;
@@ -313,7 +323,7 @@ type ProductRow = QueryResultRow & {
 const productSelect = `SELECT p.id,p.slug,p.category_id,c.name AS category_name,
   p.name,p.license,p.status,p.base_price,p.description,p.features,p.faq,
   p.demo_url,p.activation_type,p.rating_tenths,p.review_count,p.image_url,
-  p.image_name,p.download_url,p.download_name,p.sort_order,p.homepage_featured,
+  p.image_name,p.download_url,p.download_name,p.resell_url,p.sort_order,p.homepage_featured,
   p.homepage_sort_order,p.created_at,p.updated_at
   FROM products p
   INNER JOIN product_categories c ON c.id=p.category_id`;
@@ -344,6 +354,7 @@ function serializeProduct(
     imageName: row.image_name,
     downloadUrl: row.download_url,
     downloadName: row.download_name,
+    resellUrl: row.resell_url,
     sortOrder: Number(row.sort_order),
     homepageFeatured: row.homepage_featured,
     homepageSortOrder: Number(row.homepage_sort_order),
@@ -392,13 +403,26 @@ export async function listProducts(options: {
   includeDrafts: boolean;
   limit: number;
   offset: number;
+  orderByCompletedSales?: boolean;
 }) {
   const client = await getPool().connect();
   try {
     const where = options.includeDrafts ? "" : "WHERE p.status='published'";
+    const salesJoin = options.orderByCompletedSales
+      ? `LEFT JOIN (
+          SELECT oi.item_key, SUM(oi.quantity)::int AS completed_sales
+          FROM order_items oi
+          INNER JOIN orders o ON o.id=oi.order_id
+          WHERE o.status='completed'
+          GROUP BY oi.item_key
+        ) completed_sales ON completed_sales.item_key=p.id`
+      : "";
+    const ordering = options.orderByCompletedSales
+      ? "COALESCE(completed_sales.completed_sales,0) DESC,p.sort_order,p.name,p.id"
+      : "p.sort_order,p.name,p.id";
     const result = await client.query<ProductRow>(
-      `${productSelect} ${where}
-       ORDER BY p.sort_order,p.name,p.id LIMIT $1 OFFSET $2`,
+      `${productSelect} ${salesJoin} ${where}
+       ORDER BY ${ordering} LIMIT $1 OFFSET $2`,
       [options.limit, options.offset],
     );
     const ids = result.rows.map((row) => row.id);

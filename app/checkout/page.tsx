@@ -16,6 +16,8 @@ const payments = [
   { id: "bank-asia", name: "Bank Asia", group: "Bank Transfer", account: "Configure in Admin", accountName: "Mehedi Hassan Rahat", accountType: "Bank Account", color: "#245eaa" },
 ];
 
+type CustomerProfile = { id: string; name: string; email: string; phone: string };
+
 export default function CheckoutPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [totals, setTotals] = useState<ValidatedTotals>({ subtotal: 0, discount: 0, paymentCharge: 0, total: 0, couponCode: "" });
@@ -26,6 +28,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [customer, setCustomer] = useState<CustomerProfile | null>(null);
+  const [customerFields, setCustomerFields] = useState({ name: "", email: "", phone: "" });
 
   useEffect(() => {
     const cart = loadCart();
@@ -35,6 +39,19 @@ export default function CheckoutPage() {
     if (!cart.length) { setLoading(false); return; }
     void validateCart(cart, coupon, payment).then(result => { setItems(result.items); setTotals(result.totals); saveCart(result.items); }).catch(reason => setError(reason instanceof Error ? reason.message : "Checkout could not be loaded.")).finally(() => setLoading(false));
   }, [payment]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/customer/session", { cache: "no-store", signal: controller.signal })
+      .then(async response => response.ok ? response.json() as Promise<{ customer: CustomerProfile }> : null)
+      .then(result => {
+        if (!result?.customer) return;
+        setCustomer(result.customer);
+        setCustomerFields({ name: result.customer.name || "", email: result.customer.email || "", phone: result.customer.phone || "" });
+      })
+      .catch(error => { if (!(error instanceof DOMException && error.name === "AbortError")) return; });
+    return () => controller.abort();
+  }, []);
 
   const selectedPayment = useMemo(() => payments.find(method => method.id === payment) || payments[0], [payment]);
 
@@ -58,7 +75,7 @@ export default function CheckoutPage() {
     <section className="checkout-hero"><div className="shell"><span className="eyebrow">Secure checkout</span><h1>Complete your <em>order.</em></h1><p>Every price is verified by the server before your order is saved.</p></div></section>
     <section className="section checkout-section"><form className="shell checkout-layout" onSubmit={placeOrder}>
       <div className="checkout-main">
-        <section className="checkout-card"><div className="checkout-card-heading"><span>01</span><div><h2>Customer information</h2><p>We’ll use these details for your order and activation support.</p></div></div><div className="checkout-fields"><label className="full-field"><span>Full name *</span><input name="name" required minLength={2} maxLength={120} placeholder="Your full name"/></label><label><span>Email address *</span><input name="email" type="email" required maxLength={254} placeholder="you@example.com"/></label><label><span>Phone number *</span><input name="phone" required minLength={8} maxLength={30} placeholder="01XXXXXXXXX"/></label><label className="full-field"><span>Order notes (optional)</span><textarea name="notes" maxLength={2000} placeholder="Any information we should know before activation?"/></label></div></section>
+        <section className="checkout-card"><div className="checkout-card-heading"><span>01</span><div><h2>Customer information</h2><p>We’ll use these details for your order and activation support.</p>{customer && <small className="checkout-signed-in">✓ Signed in as <b>{customer.name}</b></small>}</div></div><div className="checkout-fields"><label className="full-field"><span>Full name *</span><input name="name" required minLength={2} maxLength={120} placeholder="Your full name" autoComplete="name" value={customerFields.name} onChange={event => setCustomerFields(fields => ({ ...fields, name: event.target.value }))}/></label><label><span>Email address *</span><input name="email" type="email" required maxLength={254} placeholder="you@example.com" autoComplete="email" value={customerFields.email} onChange={event => setCustomerFields(fields => ({ ...fields, email: event.target.value }))}/></label><label><span>Phone number *</span><input name="phone" required minLength={8} maxLength={30} placeholder="01XXXXXXXXX" autoComplete="tel" value={customerFields.phone} onChange={event => setCustomerFields(fields => ({ ...fields, phone: event.target.value }))}/></label><label className="full-field"><span>Order notes (optional)</span><textarea name="notes" maxLength={2000} placeholder="Any information we should know before activation?"/></label></div></section>
         <section className="checkout-card activation-info-card"><div className="checkout-card-heading"><span>02</span><div><h2>Activation Info</h2><p>Optional — provide website access only if you want us to handle activation.</p></div></div><div className="checkout-fields"><label className="full-field"><span>Website login link (optional)</span><input name="activationLoginUrl" type="url" inputMode="url" maxLength={500} placeholder="https://example.com/wp-admin" autoComplete="url"/></label><label><span>Username (optional)</span><input name="activationUsername" maxLength={254} placeholder="Website username" autoComplete="off"/></label><label><span>Password (optional)</span><input name="activationPassword" type="password" maxLength={500} placeholder="Website password" autoComplete="new-password"/></label></div><p className="activation-security-note">🔒 Password is encrypted and only visible to authorized administrators.</p></section>
         <section className="checkout-card"><div className="checkout-card-heading"><span>03</span><div><h2>Payment method</h2><p>Select how you would like to complete your payment.</p></div></div>
           {["Mobile Banking", "Bank Transfer"].map(group => <div className="payment-group" key={group}><div className="payment-group-title"><b>{group}</b><span>{payments.filter(method => method.group === group).length} methods</span></div><div className={`payment-method-grid ${group === "Bank Transfer" ? "bank-method-grid" : ""}`}>{payments.filter(method => method.group === group).map(method => { const available = method.account !== "Configure in Admin"; return <label className={`${payment === method.id ? "active" : ""} ${available ? "" : "unavailable"}`} key={method.id}><input type="radio" name="payment" value={method.id} checked={payment === method.id} disabled={!available} onChange={() => { setPayment(method.id); setCopied(false); }}/><span style={{ background: method.color }}>{method.name.charAt(0)}</span><b>{method.name}{available ? "" : " (Coming soon)"}</b><i/></label>; })}</div></div>)}

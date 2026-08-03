@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import SiteFooter from "../SiteFooter";
 
-type Order = { number: string; receiptToken?: string; status: string; customer: { name: string }; payment: string; total: number };
+type Order = { number: string; status: string; customer: { name: string }; payment: string; total: number };
 
 export default function OrderSuccessPage() {
   const [order, setOrder] = useState<Order | null>(null);
@@ -12,7 +12,7 @@ export default function OrderSuccessPage() {
   return (
     <main>
       <section className="success-page">
-        <div className="success-card">
+        <div className="success-card order-success-card">
           <span className="success-check">✓</span>
           <span className="eyebrow">Order received</span>
           <h1>Thank you{order?.customer.name ? `, ${order.customer.name}` : ""}.</h1>
@@ -23,8 +23,7 @@ export default function OrderSuccessPage() {
             <div><span>Total</span><b>৳ {(order?.total || 0).toLocaleString("en-US")}</b></div>
             <div><span>Payment</span><b>{order?.payment || "Pending"}</b></div>
           </div>
-          {order?.receiptToken && <div className="tracking-token"><span>Private tracking token</span><code>{order.receiptToken}</code><small>Save this token. It is required to securely view this order.</small></div>}
-          <div className="success-actions"><a className="button primary" href="/order-tracking">Track this order</a><a className="button secondary" href="/products">Continue shopping</a></div>
+          <div className="success-actions"><a className="button primary" href="/account">Open customer dashboard</a><a className="button secondary" href="/products">Continue shopping</a></div>
         </div>
       </section>
       <SiteFooter />

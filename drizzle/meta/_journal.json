@@ -64,6 +64,31 @@
       "when": 1785840000000,
       "tag": "0008_homepage_featured_products",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785843600000,
+      "tag": "0009_product_resell_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785847200000,
+      "tag": "0010_product_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785850800000,
+      "tag": "0011_review_submission_throttling",
+      "breakpoints": true
+    },
+    {"idx":12,"version":"7","when":1785854400000,"tag":"0012_customer_auth","breakpoints":true}
+    ,{"idx":13,"version":"7","when":1785858000000,"tag":"0013_smtp_settings","breakpoints":true}
+    ,{"idx":14,"version":"7","when":1785861600000,"tag":"0014_remove_order_tracking_tokens","breakpoints":true}
     }
   ]
 }

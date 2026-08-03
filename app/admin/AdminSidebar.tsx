@@ -25,9 +25,8 @@ export default function AdminSidebar({ active }: { active?: string }) {
   const single = [
     ["▦", "Dashboard", "/admin", "overview"],
     ["▣", "Orders", "/admin/orders", "orders"],
-    ["♟", "Customers", "#customers", "customers"],
+    ["♟", "Customers", "/admin/customers", "customers"],
     ["✉", "Enquiries", "/admin/enquiries", "enquiries"],
-    ["♛", "Membership", "#membership", "membership"],
   ];
   const after = [
     ["⚒", "Services", "/admin/services", "services"],
@@ -145,9 +144,10 @@ export default function AdminSidebar({ active }: { active?: string }) {
           <a href="#footer">Footer</a>
           <a href="#contact-info">Contact information</a>
           <a href="#payment-settings">Payment methods</a>
-          <a href="#membership-rules">Membership rules</a>
+          <a href="/admin/membership-tiers">Membership rules</a>
           <a href="#seo-settings">SEO settings</a>
           <a href="#admin-users">Admin users</a>
+          <a href="/admin/smtp-settings">Email / SMTP settings</a>
         </CmsGroup>
         <div className="admin-sidebar-foot">
           <a href="/">View website ↗</a>

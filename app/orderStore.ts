@@ -11,7 +11,6 @@ export type StoredOrderItem = {
 
 export type StoredOrder = {
   number: string;
-  receiptToken?: string;
   status: string;
   createdAt?: string;
   total?: number;

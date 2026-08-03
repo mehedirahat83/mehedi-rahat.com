@@ -126,10 +126,13 @@ export function calculateOrderTotals(
   items: ResolvedOrderItem[],
   couponCode: string,
   paymentMethod: string,
+  membershipPercent = 0,
 ) {
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const normalisedCoupon = couponCode.trim().toUpperCase();
-  const discount = normalisedCoupon === "MR10" ? Math.round(subtotal * 0.1) : 0;
+  const couponPercent = normalisedCoupon === "MR10" ? 10 : 0;
+  const appliedPercent = Math.max(couponPercent, membershipPercent);
+  const discount = Math.round(subtotal * (appliedPercent / 100));
   const afterDiscount = subtotal - discount;
   const paymentCharge =
     paymentMethod === "bkash" ? Math.round(afterDiscount * 0.0185) : 0;
@@ -138,6 +141,7 @@ export function calculateOrderTotals(
     discount,
     paymentCharge,
     total: afterDiscount + paymentCharge,
-    couponCode: normalisedCoupon === "MR10" ? "MR10" : "",
+    couponCode: appliedPercent === membershipPercent && membershipPercent > couponPercent ? `MEMBER-${membershipPercent}` : normalisedCoupon === "MR10" ? "MR10" : "",
+    membershipPercent: appliedPercent === membershipPercent ? membershipPercent : 0,
   };
 }

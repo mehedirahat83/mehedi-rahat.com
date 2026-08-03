@@ -64,6 +64,7 @@ const columns: Partial<Record<keyof ProductWriteInput, string>> = {
   imageName: "image_name",
   downloadUrl: "download_url",
   downloadName: "download_name",
+  resellUrl: "resell_url",
   sortOrder: "sort_order",
   homepageFeatured: "homepage_featured",
   homepageSortOrder: "homepage_sort_order",

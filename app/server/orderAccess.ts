@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type { PoolClient, QueryResultRow } from "pg";
 import { decryptActivationPassword } from "@/app/server/activationCredentials";
 
@@ -17,9 +16,6 @@ export function normalizeDomain(value: unknown) {
     return hostname;
   } catch { return null; }
 }
-export function hashReceiptToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
-export function receiptToken(request: Request) { const header = request.headers.get("authorization") || ""; return header.startsWith("Bearer ") ? header.slice(7).trim() : new URL(request.url).searchParams.get("token")?.trim() || ""; }
-
 export async function loadOrder(client: PoolClient, where: "id" | "number", value: string, includePrivateActivationInfo = false) {
   const field = where === "id" ? "o.id" : "o.order_number";
   const result = await client.query(`SELECT o.*,c.name AS customer_name,c.email AS customer_email,c.phone AS customer_phone,p.id AS payment_id,p.method AS submitted_method,p.sender_number,p.transaction_id,p.status AS payment_status,p.verified_by,p.verified_at FROM orders o JOIN customers c ON c.id=o.customer_id LEFT JOIN payment_submissions p ON p.order_id=o.id WHERE ${field}=$1`, [value]);
