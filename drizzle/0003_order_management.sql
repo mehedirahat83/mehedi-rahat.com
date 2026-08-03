@@ -1,0 +1,4 @@
+CREATE UNIQUE INDEX "entitlements_order_item_uidx" ON "entitlements" USING btree ("order_item_id");--> statement-breakpoint
+ALTER TABLE "entitlements" ADD CONSTRAINT "entitlements_status_check" CHECK ("entitlements"."status" in ('active', 'revoked'));--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_status_check" CHECK ("orders"."status" in ('payment_verification', 'on_hold', 'completed', 'rejected'));--> statement-breakpoint
+ALTER TABLE "payment_submissions" ADD CONSTRAINT "payment_submissions_status_check" CHECK ("payment_submissions"."status" in ('pending', 'held', 'approved', 'rejected'));

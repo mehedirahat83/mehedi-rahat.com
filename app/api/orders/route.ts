@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getPool } from "@/db";
 import { calculateOrderTotals, resolveCheckoutItems } from "@/app/server/orderCatalog";
+import { encryptActivationPassword } from "@/app/server/activationCredentials";
 
 const paymentMethods = new Set(["bkash"]);
 const clean = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
@@ -12,6 +13,10 @@ export async function POST(request: Request) {
   const email = clean(customer.email, 254).toLowerCase();
   const phone = clean(customer.phone, 30);
   const notes = clean(body?.notes, 2000);
+  const activationInfo = body?.activationInfo && typeof body.activationInfo === "object" ? body.activationInfo as Record<string, unknown> : {};
+  const activationLoginUrl = clean(activationInfo.loginUrl, 500);
+  const activationUsername = clean(activationInfo.username, 254);
+  const activationPassword = clean(activationInfo.password, 500);
   const paymentMethod = clean(body?.paymentMethod, 40);
   const senderNumber = clean(body?.senderNumber, 30);
   const transactionId = clean(body?.transactionId, 120).toUpperCase();
@@ -21,6 +26,10 @@ export async function POST(request: Request) {
   }
   if (!paymentMethods.has(paymentMethod) || senderNumber.length < 8 || transactionId.length < 4 || idempotencyKey.length < 16) {
     return Response.json({ ok: false, error: "Please provide valid payment details." }, { status: 400 });
+  }
+  if (activationLoginUrl) {
+    try { const parsed = new URL(activationLoginUrl); if (!new Set(["http:", "https:"]).has(parsed.protocol)) throw new Error(); }
+    catch { return Response.json({ ok: false, error: "Please provide a valid website login link." }, { status: 400 }); }
   }
 
   const client = await getPool().connect();
@@ -40,8 +49,9 @@ export async function POST(request: Request) {
     const customerId = crypto.randomUUID();
     const receiptToken = randomBytes(32).toString("hex");
     const receiptTokenHash = createHash("sha256").update(receiptToken).digest("hex");
-    const orderNumber = `MR-${Date.now().toString(36).toUpperCase()}-${randomBytes(2).toString("hex").toUpperCase()}`;
     await client.query("BEGIN");
+    const sequenceResult = await client.query<{ value: string }>("SELECT nextval('order_number_seq')::text AS value");
+    const orderNumber = `MR-${sequenceResult.rows[0].value}`;
     const customerResult = await client.query<{ id: string }>(
       `INSERT INTO customers (id,email,name,phone,lifetime_spend,created_at,updated_at)
        VALUES ($1,$2,$3,$4,0,$5,$5)
@@ -51,9 +61,9 @@ export async function POST(request: Request) {
     );
     const storedCustomerId = customerResult.rows[0].id;
     await client.query(
-      `INSERT INTO orders (id,order_number,receipt_token_hash,customer_id,status,currency,subtotal,discount,payment_charge,total,coupon_code,payment_method,notes,idempotency_key,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,'payment_verification','BDT',$5,$6,$7,$8,$9,$10,$11,$12,$13,$13)`,
-      [orderId, orderNumber, receiptTokenHash, storedCustomerId, totals.subtotal, totals.discount, totals.paymentCharge, totals.total, totals.couponCode || null, paymentMethod, notes || null, idempotencyKey, now],
+      `INSERT INTO orders (id,order_number,receipt_token_hash,customer_id,status,currency,subtotal,discount,payment_charge,total,coupon_code,payment_method,notes,activation_login_url,activation_username,activation_password_encrypted,idempotency_key,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,'payment_verification','BDT',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16)`,
+      [orderId, orderNumber, receiptTokenHash, storedCustomerId, totals.subtotal, totals.discount, totals.paymentCharge, totals.total, totals.couponCode || null, paymentMethod, notes || null, activationLoginUrl || null, activationUsername || null, encryptActivationPassword(activationPassword), idempotencyKey, now],
     );
     for (const item of items) {
       await client.query(
@@ -73,7 +83,7 @@ export async function POST(request: Request) {
       [crypto.randomUUID(), orderId, now],
     );
     await client.query("COMMIT");
-    return Response.json({ ok: true, receiptToken, order: { number: orderNumber, status: "Payment Verification", createdAt: now, customer: { name, email, phone }, items: items.map(item => ({ id: item.itemKey, name: item.name, variation: item.variation, price: item.unitPrice, quantity: item.quantity })), payment: paymentMethod, subtotal: totals.subtotal, discount: totals.discount, paymentCharge: totals.paymentCharge, total: totals.total, senderNumber, transactionId } }, { status: 201 });
+    return Response.json({ ok: true, receiptToken, order: { number: orderNumber, receiptToken, status: "payment_verification", createdAt: now, customer: { name, email, phone }, items: items.map(item => ({ id: item.itemKey, name: item.name, variation: item.variation, price: item.unitPrice, quantity: item.quantity })), payment: paymentMethod, subtotal: totals.subtotal, discount: totals.discount, paymentCharge: totals.paymentCharge, total: totals.total, senderNumber, transactionId } }, { status: 201 });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
     const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";

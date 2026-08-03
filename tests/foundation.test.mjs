@@ -157,6 +157,25 @@ const checks = [
     assert.match(api, /\/api\/products\?limit=100/);
     assert.doesNotMatch(api, /include=drafts/);
   }],
+  ["product permalinks use slugs and permanently redirect legacy query URLs", async () => {
+    const [productPage, productRoute, catalog, header, adminProducts, proxy] = await Promise.all([
+      read("app/product/page.tsx"),
+      read("app/product/[slug]/page.tsx"),
+      read("app/products/page.tsx"),
+      read("app/MainHeader.tsx"),
+      read("app/admin/AdminProducts.tsx"),
+      read("proxy.ts"),
+    ]);
+
+    assert.match(productRoute, /ProductPage identifier=\{slug\}/);
+    assert.match(productPage, /routeIdentifier/);
+    assert.match(catalog, /\/product\/\$\{encodeURIComponent\(product\.slug\)\}/);
+    assert.match(header, /\/product\/\$\{encodeURIComponent\(item\.slug\)\}/);
+    assert.match(adminProducts, /\/product\/\$\{encodeURIComponent\(product\.slug\)\}/);
+    assert.match(proxy, /request\.nextUrl\.pathname === "\/product"/);
+    assert.match(proxy, /"elementor-pro": "elementor-pro-license-key"/);
+    assert.match(proxy, /NextResponse\.redirect\(destination, 308\)/);
+  }],
   ["cart and checkout use server-validated pricing and persistent orders", async () => {
     const [cartApi, ordersApi, cartPage, checkoutPage, catalog] = await Promise.all([
       read("app/api/cart/validate/route.ts"),
@@ -170,11 +189,59 @@ const checks = [
     assert.match(ordersApi, /INSERT INTO order_items/);
     assert.match(ordersApi, /INSERT INTO payment_submissions/);
     assert.match(ordersApi, /idempotency_key/);
+    assert.match(ordersApi, /nextval\('order_number_seq'\)/);
     assert.match(catalog, /p\.status='published'/);
     assert.match(catalog, /product_variations/);
     assert.match(cartPage, /validateCart/);
     assert.match(checkoutPage, /fetch\(["']\/api\/orders["']/);
     assert.doesNotMatch(checkoutPage, /const\s+subtotal\s*=\s*useMemo/);
+  }],
+  ["phase 3 order management is authenticated, audited and customer-token scoped", async () => {
+    const [adminList, adminDetail, customerTracking, access, adminUi, migration, schema] = await Promise.all([
+      read("app/api/admin/orders/route.ts"), read("app/api/admin/orders/[id]/route.ts"),
+      read("app/api/orders/[number]/route.ts"), read("app/server/orderAccess.ts"),
+      read("app/admin/AdminPortal.tsx"), read("drizzle/0003_order_management.sql"), read("db/schema.ts"),
+    ]);
+    assert.match(adminList, /isAdminRequest/);
+    assert.match(adminList, /ILIKE/);
+    assert.match(adminDetail, /FOR UPDATE/);
+    assert.match(adminDetail, /INSERT INTO order_status_history/);
+    assert.match(adminDetail, /INSERT INTO entitlements/);
+    assert.match(adminDetail, /ON CONFLICT \(order_item_id\) DO UPDATE/);
+    assert.match(adminDetail, /status='revoked'/);
+    assert.match(customerTracking, /receipt_token_hash/);
+    assert.match(customerTracking, /Cache-Control/);
+    assert.match(access, /sha256/);
+    assert.match(adminUi, /api\/admin\/orders/);
+    assert.doesNotMatch(adminUi, /localStorage|updateStoredOrderStatus/);
+    assert.match(migration, /entitlements_order_item_uidx/);
+    assert.match(schema, /orders_status_check/);
+  }],
+  ["manual license activations enforce limits and support domain order search", async () => {
+    const [schema, activationApi, licenseApi, orderListApi, orderAccess, migration, adminUi] = await Promise.all([
+      read("db/schema.ts"), read("app/api/admin/orders/[id]/activations/route.ts"),
+      read("app/api/admin/orders/[id]/license/route.ts"),
+      read("app/api/admin/orders/route.ts"), read("app/server/orderAccess.ts"),
+      read("drizzle/0004_license_activations.sql"), read("app/admin/AdminPortal.tsx"),
+    ]);
+    assert.match(schema, /export const licenseActivations/);
+    assert.match(schema, /license_activations_entitlement_domain_uidx/);
+    assert.match(schema, /activationLimit/);
+    assert.match(activationApi, /isAdminRequest/);
+    assert.match(activationApi, /normalizeDomain/);
+    assert.match(activationApi, /Activation limit reached/);
+    assert.match(activationApi, /license_activation_history/);
+    assert.match(licenseApi, /isAdminRequest/);
+    assert.match(licenseApi, /UPDATE entitlements SET license_id/);
+    assert.match(orderListApi, /a\.domain ILIKE/);
+    assert.match(orderListApi, /e\.license_id ILIKE/);
+    assert.match(orderListApi, /product_names/);
+    assert.match(orderListApi, /active_domains/);
+    assert.match(orderAccess, /license_activations/);
+    assert.match(migration, /UPDATE "product_variations"/);
+    assert.match(migration, /UPDATE "entitlements"/);
+    assert.match(adminUi, /License Summary/);
+    assert.match(adminUi, /Add domain/);
   }],
   ["the production target is standard Next.js standalone", async () => {
     const [packageJson, nextConfig] = await Promise.all([

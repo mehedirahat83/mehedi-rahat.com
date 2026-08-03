@@ -386,7 +386,7 @@ export default function AdminProducts({
                       <em className={product.status}>{product.status}</em>
                       <span className="product-row-actions">
                         <a
-                          href={`/product?id=${encodeURIComponent(product.slug)}`}
+                          href={`/product/${encodeURIComponent(product.slug)}`}
                           target="_blank"
                         >
                           View

@@ -4,11 +4,14 @@ import {
   check,
   index,
   integer,
+  pgSequence,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+export const orderNumberSequence = pgSequence("order_number_seq", { startWith: 3001 });
 
 export const productCategories = pgTable(
   "product_categories",
@@ -112,6 +115,7 @@ export const productVariations = pgTable(
       .references(() => products.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
     price: integer("price").notNull(),
+    activationLimit: integer("activation_limit").notNull().default(1),
     sortOrder: integer("sort_order").notNull().default(0),
   },
   (table) => [
@@ -124,6 +128,7 @@ export const productVariations = pgTable(
       table.sortOrder,
     ),
     check("product_variations_price_check", sql`${table.price} >= 0`),
+    check("product_variations_activation_limit_check", sql`${table.activationLimit} >= 1`),
     check(
       "product_variations_sort_order_check",
       sql`${table.sortOrder} >= 0`,
@@ -207,6 +212,9 @@ export const orders = pgTable(
     couponCode: text("coupon_code"),
     paymentMethod: text("payment_method").notNull(),
     notes: text("notes"),
+    activationLoginUrl: text("activation_login_url"),
+    activationUsername: text("activation_username"),
+    activationPasswordEncrypted: text("activation_password_encrypted"),
     idempotencyKey: text("idempotency_key").notNull().unique(),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
@@ -216,6 +224,7 @@ export const orders = pgTable(
     index("orders_customer_idx").on(table.customerId),
     index("orders_status_idx").on(table.status),
     index("orders_created_idx").on(table.createdAt),
+    check("orders_status_check", sql`${table.status} in ('payment_verification', 'on_hold', 'completed', 'rejected', 'refunded')`),
   ],
 );
 
@@ -256,6 +265,7 @@ export const paymentSubmissions = pgTable(
   (table) => [
     index("payment_order_idx").on(table.orderId),
     index("payment_transaction_idx").on(table.transactionId),
+    check("payment_submissions_status_check", sql`${table.status} in ('pending', 'held', 'approved', 'rejected', 'refunded')`),
   ],
 );
 
@@ -290,6 +300,8 @@ export const entitlements = pgTable(
       .references(() => orderItems.id),
     itemKey: text("item_key").notNull(),
     variation: text("variation").notNull(),
+    licenseId: text("license_id"),
+    activationLimit: integer("activation_limit").notNull().default(1),
     status: text("status").notNull().default("active"),
     downloadUrl: text("download_url"),
     createdAt: text("created_at").notNull(),
@@ -297,7 +309,45 @@ export const entitlements = pgTable(
   (table) => [
     index("entitlements_customer_idx").on(table.customerId),
     index("entitlements_order_idx").on(table.orderId),
+    uniqueIndex("entitlements_order_item_uidx").on(table.orderItemId),
+    uniqueIndex("entitlements_license_id_uidx").on(table.licenseId),
+    check("entitlements_status_check", sql`${table.status} in ('active', 'revoked')`),
+    check("entitlements_activation_limit_check", sql`${table.activationLimit} >= 1`),
   ],
+);
+
+export const licenseActivations = pgTable(
+  "license_activations",
+  {
+    id: text("id").primaryKey(),
+    entitlementId: text("entitlement_id").notNull().references(() => entitlements.id, { onDelete: "cascade" }),
+    domain: text("domain").notNull(),
+    status: text("status").notNull().default("active"),
+    note: text("note"),
+    activatedAt: text("activated_at"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("license_activations_entitlement_domain_uidx").on(table.entitlementId, table.domain),
+    index("license_activations_domain_idx").on(table.domain),
+    index("license_activations_status_idx").on(table.status),
+    check("license_activations_status_check", sql`${table.status} in ('pending', 'active', 'suspended', 'revoked')`),
+  ],
+);
+
+export const licenseActivationHistory = pgTable(
+  "license_activation_history",
+  {
+    id: text("id").primaryKey(),
+    activationId: text("activation_id").notNull().references(() => licenseActivations.id, { onDelete: "cascade" }),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status").notNull(),
+    note: text("note"),
+    actor: text("actor").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("license_activation_history_activation_idx").on(table.activationId, table.createdAt)],
 );
 
 export const emailOutbox = pgTable(

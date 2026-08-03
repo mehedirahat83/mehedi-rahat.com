@@ -55,7 +55,7 @@ function parseFaq(value: string) {
   return rows.length ? rows : fallbackFaq;
 }
 
-export default function ProductPage() {
+export default function ProductPage({ identifier: routeIdentifier }: { identifier?: string }) {
   const [product, setProduct] = useState<StorefrontProduct | null>(null);
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [selected, setSelected] = useState(0);
@@ -65,7 +65,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const identifier = new URLSearchParams(window.location.search).get("id");
+    const identifier = routeIdentifier || new URLSearchParams(window.location.search).get("id");
     if (!identifier) {
       setError("Product not found.");
       setLoading(false);
@@ -94,7 +94,7 @@ export default function ProductPage() {
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, []);
+  }, [routeIdentifier]);
 
   const related = useMemo(
     () => products.filter((item) => item.id !== product?.id).slice(0, 7),
@@ -262,7 +262,7 @@ export default function ProductPage() {
             <div className="related-list">
               {related.map((item, index) => (
                 <a
-                  href={`/product?id=${encodeURIComponent(item.slug)}`}
+                  href={`/product/${encodeURIComponent(item.slug)}`}
                   key={item.id}
                 >
                   <span className={`related-icon related-icon-${(index % 4) + 1}`}>

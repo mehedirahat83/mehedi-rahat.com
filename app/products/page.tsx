@@ -193,7 +193,7 @@ export default function ProductsPage() {
                       <div className="catalog-footer">
                         <span>{product.activationType}</span>
                         <a
-                          href={`/product?id=${encodeURIComponent(product.slug)}`}
+                          href={`/product/${encodeURIComponent(product.slug)}`}
                         >
                           View details <Arrow />
                         </a>
