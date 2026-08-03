@@ -25,6 +25,8 @@ export type ProductWriteInput = {
   downloadUrl?: string | null;
   downloadName?: string | null;
   sortOrder?: number;
+  homepageFeatured?: boolean;
+  homepageSortOrder?: number;
   variations?: ProductVariationInput[];
   information?: ProductInformationInput[];
 };
@@ -57,6 +59,7 @@ function integer(value: unknown) {
 
 function isSafeResourceUrl(value: string | null) {
   if (!value) return true;
+  if (/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/]+={0,2}$/i.test(value)) return true;
   if (value.startsWith("/")) return !value.startsWith("//");
   try {
     const url = new URL(value);
@@ -155,7 +158,7 @@ export function validateProductInput(
   const resourceFields = ["imageUrl", "downloadUrl"] as const;
   for (const key of resourceFields) {
     if (!has(body, key)) continue;
-    value[key] = nullableText(body[key], 2048);
+    value[key] = nullableText(body[key], key === "imageUrl" ? 2_100_000 : 2048);
     if (!isSafeResourceUrl(value[key] ?? null)) {
       fields[key] = "Use a valid HTTP(S) or site-relative URL.";
     }
@@ -189,6 +192,23 @@ export function validateProductInput(
       fields[key] = "Use a non-negative whole number.";
     } else {
       value[key] = parsed;
+    }
+  }
+
+  if (has(body, "homepageFeatured")) {
+    if (typeof body.homepageFeatured !== "boolean") {
+      fields.homepageFeatured = "Choose whether this product appears on the homepage.";
+    } else {
+      value.homepageFeatured = body.homepageFeatured;
+    }
+  }
+
+  if (has(body, "homepageSortOrder")) {
+    const parsed = integer(body.homepageSortOrder);
+    if (parsed === null || parsed < 0) {
+      fields.homepageSortOrder = "Use a non-negative whole number.";
+    } else {
+      value.homepageSortOrder = parsed;
     }
   }
 
@@ -284,6 +304,8 @@ type ProductRow = QueryResultRow & {
   download_url: string | null;
   download_name: string | null;
   sort_order: number;
+  homepage_featured: boolean;
+  homepage_sort_order: number;
   created_at: Date | string;
   updated_at: Date | string;
 };
@@ -291,7 +313,8 @@ type ProductRow = QueryResultRow & {
 const productSelect = `SELECT p.id,p.slug,p.category_id,c.name AS category_name,
   p.name,p.license,p.status,p.base_price,p.description,p.features,p.faq,
   p.demo_url,p.activation_type,p.rating_tenths,p.review_count,p.image_url,
-  p.image_name,p.download_url,p.download_name,p.sort_order,p.created_at,p.updated_at
+  p.image_name,p.download_url,p.download_name,p.sort_order,p.homepage_featured,
+  p.homepage_sort_order,p.created_at,p.updated_at
   FROM products p
   INNER JOIN product_categories c ON c.id=p.category_id`;
 
@@ -322,6 +345,8 @@ function serializeProduct(
     downloadUrl: row.download_url,
     downloadName: row.download_name,
     sortOrder: Number(row.sort_order),
+    homepageFeatured: row.homepage_featured,
+    homepageSortOrder: Number(row.homepage_sort_order),
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
     variations,
@@ -375,6 +400,39 @@ export async function listProducts(options: {
       `${productSelect} ${where}
        ORDER BY p.sort_order,p.name,p.id LIMIT $1 OFFSET $2`,
       [options.limit, options.offset],
+    );
+    const ids = result.rows.map((row) => row.id);
+    const children = await loadChildren(client, ids);
+    return result.rows.map((row) =>
+      serializeProduct(
+        row,
+        children.variations.get(row.id) ?? [],
+        children.information.get(row.id) ?? [],
+      ),
+    );
+  } finally {
+    client.release();
+  }
+}
+
+export async function listHomepageProducts(limit: number) {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query<ProductRow>(
+      `WITH homepage_sales AS (
+        SELECT p.id,
+          COALESCE(SUM(CASE WHEN o.status='completed' THEN oi.quantity ELSE 0 END),0)::int AS completed_sales
+        FROM products p
+        LEFT JOIN order_items oi ON oi.item_key=p.id
+        LEFT JOIN orders o ON o.id=oi.order_id
+        WHERE p.status='published' AND p.homepage_featured=true
+        GROUP BY p.id
+      )
+      ${productSelect}
+      INNER JOIN homepage_sales hs ON hs.id=p.id
+      ORDER BY hs.completed_sales DESC,p.homepage_sort_order,p.sort_order,p.name,p.id
+      LIMIT $1`,
+      [limit],
     );
     const ids = result.rows.map((row) => row.id);
     const children = await loadChildren(client, ids);

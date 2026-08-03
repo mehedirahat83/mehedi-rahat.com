@@ -152,16 +152,14 @@ export default function ProductsPage() {
                 return (
                   <article className="catalog-card" key={product.id}>
                     <div
-                      className={`catalog-art catalog-art-${(index % 5) + 1}`}
+                      className={`catalog-art catalog-art-${(index % 5) + 1}${product.imageUrl ? " catalog-art--featured" : ""}`}
+                      style={product.imageUrl ? { margin: 0, borderRadius: "14px 14px 0 0" } : undefined}
                     >
                       {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} />
+                        <img src={product.imageUrl} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", padding: 0 }} />
                       ) : (
                         <strong>{product.name.charAt(0)}</strong>
                       )}
-                      <span className="product-verified">
-                        <i /> {product.license}
-                      </span>
                       <div>
                         <i />
                         <i />
@@ -169,7 +167,6 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <div className="catalog-copy">
-                      <span className="product-category">{product.category}</span>
                       <h3>{product.name}</h3>
                       <div className="catalog-price">
                         ৳ {variation.price.toLocaleString("en-US")}

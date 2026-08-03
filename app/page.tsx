@@ -4,6 +4,7 @@ import HomeProjects from "./HomeProjects";
 import MainHeader from "./MainHeader";
 import HomeReviews from "./HomeReviews";
 import HomeHero from "./HomeHero";
+import HomePopularTools from "./HomePopularTools";
 
 export const metadata: Metadata = {
   title: "Mehedi Rahat — Digital Products & Web Solutions",
@@ -18,6 +19,7 @@ const baseProducts = [
   ["Rank Math Pro", "SEO Toolkit", "৳ 500", "1–10 sites"],
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const products = [
   ...baseProducts.map((product, index) => [...product, index === 1 ? "One year" : "Lifetime"]),
   ["Tutor LMS Pro", "Learning Platform", "\u09F3 500", "1\u201310 sites", "Lifetime"],
@@ -132,31 +134,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section soft-section" id="products">
-        <div className="shell">
-          <div className="section-heading">
-            <div><span className="eyebrow">Popular tools</span><h2>Official tools at a <em>practical price.</em></h2></div>
-            <a href="/products">View all products <Arrow /></a>
-          </div>
-          <div className="product-grid">
-            {products.map(([name, category, price, variation, licensePeriod], index) => (
-              <article className="product-card reveal" key={name}>
-                <div className={`product-art product-art-${index + 1}`}>
-                  <span className="product-verified"><i aria-hidden="true" /> {licensePeriod}</span>
-                  <div className="product-logo">{name.slice(0, 1)}</div>
-                  <div className="product-art-lines"><i /><i /><i /></div>
-                </div>
-                <div className="product-copy">
-                  <span className="product-category">{category}</span>
-                  <h3>{name}</h3>
-                  <div className="product-meta"><span>{variation}</span><span>Instant access</span></div>
-                  <div className="product-footer"><strong>{price}</strong><button aria-label={`View ${name}`}>View details <Arrow /></button></div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HomePopularTools />
 
       <section className="section value-section">
         <div className="shell value-grid">

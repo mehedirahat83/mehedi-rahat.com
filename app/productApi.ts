@@ -22,6 +22,8 @@ export type StorefrontProduct = {
   imageName: string | null;
   downloadUrl: string | null;
   downloadName: string | null;
+  homepageFeatured: boolean;
+  homepageSortOrder: number;
   variations: ProductVariation[];
   information: ProductInformation[];
 };
@@ -50,6 +52,14 @@ async function parseResponse<T extends { error?: string }>(
 
 export async function fetchPublishedProducts(signal?: AbortSignal) {
   const response = await fetch("/api/products?limit=100", {
+    cache: "no-store",
+    signal,
+  });
+  return (await parseResponse<ProductsResponse>(response)).products;
+}
+
+export async function fetchHomepageProducts(signal?: AbortSignal) {
+  const response = await fetch("/api/products?homepage=featured&limit=10", {
     cache: "no-store",
     signal,
   });

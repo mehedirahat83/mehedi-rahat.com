@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   index,
   integer,
@@ -73,6 +74,8 @@ export const products = pgTable(
     downloadUrl: text("download_url"),
     downloadName: text("download_name"),
     sortOrder: integer("sort_order").notNull().default(0),
+    homepageFeatured: boolean("homepage_featured").notNull().default(false),
+    homepageSortOrder: integer("homepage_sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -88,6 +91,11 @@ export const products = pgTable(
       table.sortOrder,
     ),
     index("products_status_updated_idx").on(table.status, table.updatedAt),
+    index("products_homepage_featured_idx").on(
+      table.homepageFeatured,
+      table.status,
+      table.homepageSortOrder,
+    ),
     check(
       "products_license_check",
       sql`${table.license} in ('One Year', 'Lifetime')`,
@@ -103,6 +111,10 @@ export const products = pgTable(
     ),
     check("products_review_count_check", sql`${table.reviewCount} >= 0`),
     check("products_sort_order_check", sql`${table.sortOrder} >= 0`),
+    check(
+      "products_homepage_sort_order_check",
+      sql`${table.homepageSortOrder} >= 0`,
+    ),
   ],
 );
 

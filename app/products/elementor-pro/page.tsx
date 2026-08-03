@@ -57,7 +57,7 @@ export default function ElementorProPage() {
     else cart.push({ id, name: productData.name, category: productData.category, variation: variation.label, price: variation.price, quantity: 1 });
     localStorage.setItem("mr-cart", JSON.stringify(cart));
     setCartCount(cart.reduce((total, item) => total + item.quantity, 0));
-    setAdded(true);
+    window.location.assign("/cart");
   }
 
   return (

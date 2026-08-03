@@ -81,6 +81,8 @@ const checks = [
     assert.match(schema, /products_category_status_sort_idx/);
     assert.match(schema, /products_status_check/);
     assert.match(schema, /products_license_check/);
+    assert.match(schema, /homepageFeatured/);
+    assert.match(schema, /products_homepage_featured_idx/);
     assert.match(schema, /product_variations_product_label_uidx/);
     assert.match(schema, /onDelete:\s*["']cascade["']/);
     assert.match(migration, /CREATE TABLE "product_categories"/);
@@ -119,12 +121,15 @@ const checks = [
     assert.match(collectionRoute, /client\.query\(["']BEGIN["']\)/);
     assert.match(detailRoute, /client\.query\(["']BEGIN["']\)/);
     assert.match(detailRoute, /DELETE FROM products WHERE id=\$1 OR slug=\$1/);
+    assert.match(shared, /listHomepageProducts/);
+    assert.match(shared, /o\.status='completed'/);
   }],
   ["admin products use the authenticated API and the catalog is seeded", async () => {
-    const [adminProducts, seedMigration, journal] = await Promise.all([
+    const [adminProducts, seedMigration, journal, productValidation] = await Promise.all([
       read("app/admin/AdminProducts.tsx"),
       read("drizzle/0002_seed_product_catalog.sql"),
       read("drizzle/meta/_journal.json"),
+      read("app/api/products/shared.ts"),
     ]);
 
     assert.match(adminProducts, /\/api\/products\?include=drafts/);
@@ -134,6 +139,12 @@ const checks = [
     );
     assert.match(adminProducts, /method:\s*["']DELETE["']/);
     assert.doesNotMatch(adminProducts, /loadProducts|saveProducts|localStorage/);
+    assert.match(adminProducts, /uploadProductImage/);
+    assert.match(adminProducts, /type="file"/);
+    assert.match(adminProducts, /Catalog feature image/);
+    assert.match(productValidation, /data:image\\\//);
+    assert.match(adminProducts, /homepageFeatured/);
+    assert.match(adminProducts, /Homepage Popular Tools/);
     assert.match(seedMigration, /INSERT INTO "product_categories"/);
     assert.match(seedMigration, /INSERT INTO "products"/);
     assert.match(seedMigration, /INSERT INTO "product_variations"/);
@@ -156,6 +167,19 @@ const checks = [
     assert.doesNotMatch(details, /loadProducts|loadProductFaq/);
     assert.match(api, /\/api\/products\?limit=100/);
     assert.doesNotMatch(api, /include=drafts/);
+  }],
+  ["homepage products are explicitly selected and ranked by completed sales", async () => {
+    const [homepage, productApi, migration] = await Promise.all([
+      read("app/HomePopularTools.tsx"),
+      read("app/productApi.ts"),
+      read("drizzle/0008_homepage_featured_products.sql"),
+    ]);
+    assert.match(homepage, /fetchHomepageProducts/);
+    assert.match(homepage, /product\.imageUrl/);
+    assert.match(homepage, /\/product\/\$\{product\.slug\}/);
+    assert.match(productApi, /homepage=featured/);
+    assert.match(migration, /homepage_featured/);
+    assert.match(migration, /homepage_sort_order/);
   }],
   ["product permalinks use slugs and permanently redirect legacy query URLs", async () => {
     const [productPage, productRoute, catalog, header, adminProducts, proxy] = await Promise.all([

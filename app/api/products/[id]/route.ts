@@ -65,6 +65,8 @@ const columns: Partial<Record<keyof ProductWriteInput, string>> = {
   downloadUrl: "download_url",
   downloadName: "download_name",
   sortOrder: "sort_order",
+  homepageFeatured: "homepage_featured",
+  homepageSortOrder: "homepage_sort_order",
 };
 
 export async function PATCH(request: Request, context: RouteContext) {

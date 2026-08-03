@@ -34,6 +34,8 @@ type ApiProduct = {
   imageName: string | null;
   downloadUrl: string | null;
   downloadName: string | null;
+  homepageFeatured: boolean;
+  homepageSortOrder: number;
   variations: ProductVariation[];
   information: ProductInformation[];
 };
@@ -74,6 +76,8 @@ export default function AdminProducts({
   const [information, setInformation] =
     useState<ProductInformation[]>(defaultInformation);
   const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageName, setImageName] = useState("");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All categories");
   const [status, setStatus] = useState("All status");
@@ -121,6 +125,8 @@ export default function AdminProducts({
       setVariations(product.variations);
       setInformation(product.information);
       setDescription(product.description);
+      setImageUrl(product.imageUrl || "");
+      setImageName(product.imageName || "");
     })();
   }, [loadAll, mode]);
 
@@ -232,10 +238,12 @@ export default function AdminProducts({
       ),
       rating: Number(form.get("rating") || 0),
       reviewCount: Number(form.get("reviewCount") || 0),
-      imageUrl: String(form.get("imageUrl") || "") || null,
-      imageName: String(form.get("imageName") || "") || null,
+      imageUrl: imageUrl || null,
+      imageName: imageName || null,
       downloadUrl: String(form.get("downloadUrl") || "") || null,
       downloadName: String(form.get("downloadName") || "") || null,
+      homepageFeatured: String(form.get("homepageFeatured") || "false") === "true",
+      homepageSortOrder: Number(form.get("homepageSortOrder") || 0),
       variations,
       information,
     };
@@ -281,6 +289,26 @@ export default function AdminProducts({
     } finally {
       setSaving(false);
     }
+  }
+
+  function uploadProductImage(file?: File) {
+    if (!file) return;
+    if (!new Set(["image/png", "image/jpeg", "image/webp"]).has(file.type)) {
+      setError("Use a PNG, JPG, or WebP image.");
+      return;
+    }
+    if (file.size > 1.5 * 1024 * 1024) {
+      setError("Product image must be smaller than 1.5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUrl(String(reader.result));
+      setImageName(file.name);
+      setError("");
+      setFieldErrors((current) => ({ ...current, imageUrl: "" }));
+    };
+    reader.readAsDataURL(file);
   }
 
   const editorLoading = mode === "edit" && loading && !editing;
@@ -508,6 +536,24 @@ export default function AdminProducts({
                           <option value="draft">Draft</option>
                         </select>
                       </Field>
+                      <Field label="Homepage Popular Tools" error={fieldErrors.homepageFeatured}>
+                        <select
+                          name="homepageFeatured"
+                          defaultValue={editing?.homepageFeatured ? "true" : "false"}
+                        >
+                          <option value="false">Do not show on homepage</option>
+                          <option value="true">Show on homepage</option>
+                        </select>
+                      </Field>
+                      <Field label="Homepage tie-break position" error={fieldErrors.homepageSortOrder}>
+                        <input
+                          name="homepageSortOrder"
+                          type="number"
+                          min="0"
+                          step="1"
+                          defaultValue={editing?.homepageSortOrder ?? 0}
+                        />
+                      </Field>
                       <Field label="Rating score (0–5)" error={fieldErrors.rating}>
                         <input
                           name="rating"
@@ -528,6 +574,11 @@ export default function AdminProducts({
                         />
                       </Field>
                     </div>
+                    <p className="editor-card-note">
+                      Homepage products are ranked by completed sales first. The
+                      tie-break position only applies when products have the
+                      same sales total.
+                    </p>
                     <Field label="Product description">
                       <RichTextEditor
                         value={description}
@@ -685,25 +736,26 @@ export default function AdminProducts({
                   </EditorCard>
                 </div>
                 <aside className="product-editor-side">
-                  <EditorCard title="Media references">
-                    <p className="editor-card-note">
-                      Permanent file uploads will be added in the Media Upload
-                      phase. For now, use HTTPS or site-relative URLs.
-                    </p>
-                    <Field label="Product image URL" error={fieldErrors.imageUrl}>
+                  <EditorCard title="Catalog feature image">
+                    <label className="image-upload-placeholder product-image-upload">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="Product preview" />
+                      ) : (
+                        <>
+                          <i>◇</i>
+                          <b>Upload product image</b>
+                          <small>Shown on the Pro Tools catalog and product page</small>
+                        </>
+                      )}
                       <input
-                        name="imageUrl"
-                        defaultValue={editing?.imageUrl || ""}
-                        placeholder="/images/product.webp"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={(event) => uploadProductImage(event.target.files?.[0])}
                       />
-                    </Field>
-                    <Field label="Image name">
-                      <input
-                        name="imageName"
-                        defaultValue={editing?.imageName || ""}
-                        placeholder="product.webp"
-                      />
-                    </Field>
+                      <span>{imageName || "Choose product image"}</span>
+                    </label>
+                    {fieldErrors.imageUrl && <small className="editor-field-error">{fieldErrors.imageUrl}</small>}
+                    {imageUrl && <button className="remove-service-image" type="button" onClick={() => { setImageUrl(""); setImageName(""); }}>Remove image</button>}
                   </EditorCard>
                   <EditorCard title="Links & delivery">
                     <Field label="Live demo URL" error={fieldErrors.demoUrl}>

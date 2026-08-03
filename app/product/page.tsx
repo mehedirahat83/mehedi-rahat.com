@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import MainHeader from "../MainHeader";
 import {
   fetchPublishedProduct,
@@ -14,12 +14,14 @@ function Arrow() {
   return <span aria-hidden="true">↗</span>;
 }
 
-const reviews = [
-  ["Fast activation and helpful support.", "Nayeem Hasan"],
-  ["The process was clear and the product worked perfectly.", "Sabbir Ahmed"],
-  ["Quick response and dependable after-sales support.", "Farhana Islam"],
-  ["Everything was delivered exactly as described.", "Rakib Hossain"],
-  ["A smooth purchase experience from start to finish.", "Tanvir Rahman"],
+type ProductReview = { name: string; text: string; rating: number };
+
+const defaultReviews: ProductReview[] = [
+  { text: "Fast activation and helpful support.", name: "Nayeem Hasan", rating: 5 },
+  { text: "The process was clear and the product worked perfectly.", name: "Sabbir Ahmed", rating: 5 },
+  { text: "Quick response and dependable after-sales support.", name: "Farhana Islam", rating: 5 },
+  { text: "Everything was delivered exactly as described.", name: "Rakib Hossain", rating: 5 },
+  { text: "A smooth purchase experience from start to finish.", name: "Tanvir Rahman", rating: 5 },
 ];
 
 const fallbackFaq = [
@@ -62,6 +64,9 @@ export default function ProductPage({ identifier: routeIdentifier }: { identifie
   const [added, setAdded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [productReviews, setProductReviews] = useState<ProductReview[]>(defaultReviews);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewSaved, setReviewSaved] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,6 +83,14 @@ export default function ProductPage({ identifier: routeIdentifier }: { identifie
       .then(([currentProduct, allProducts]) => {
         setProduct(currentProduct);
         setProducts(allProducts);
+        try {
+          const saved = JSON.parse(
+            localStorage.getItem(`mr-product-reviews-${currentProduct.id}`) || "null",
+          );
+          setProductReviews(Array.isArray(saved) ? saved : defaultReviews);
+        } catch {
+          setProductReviews(defaultReviews);
+        }
       })
       .catch((requestError) => {
         if (
@@ -137,6 +150,7 @@ export default function ProductPage({ identifier: routeIdentifier }: { identifie
   const variation = product.variations[selected] ||
     product.variations[0] || { label: "Standard", price: product.basePrice };
   const faqs = parseFaq(product.faq);
+  const productId = product.id;
 
   function add() {
     if (!product) return;
@@ -157,7 +171,26 @@ export default function ProductPage({ identifier: routeIdentifier }: { identifie
       });
     }
     saveCart(cart);
-    setAdded(true);
+    window.location.assign("/cart");
+  }
+
+  function submitReview(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const next = [
+      {
+        name: String(form.get("name") || "Customer").trim() || "Customer",
+        text: String(form.get("review") || "").trim(),
+        rating: Number(form.get("rating") || 5),
+      },
+      ...productReviews,
+    ];
+    setProductReviews(next);
+    localStorage.setItem(`mr-product-reviews-${productId}`, JSON.stringify(next));
+    event.currentTarget.reset();
+    setReviewOpen(false);
+    setReviewSaved(true);
+    window.setTimeout(() => setReviewSaved(false), 2200);
   }
 
   return (
@@ -328,10 +361,44 @@ export default function ProductPage({ identifier: routeIdentifier }: { identifie
                 <small>{product.reviewCount} verified customer reviews</small>
               </div>
             </div>
+            <div className="theme-review-panel product-review-panel">
+              <div className="theme-review-head">
+                <div>
+                  <span>Share your experience</span>
+                  <b>Help other customers</b>
+                </div>
+                <button type="button" onClick={() => setReviewOpen((value) => !value)}>
+                  Write a review
+                </button>
+              </div>
+              {reviewOpen && (
+                <form className="theme-review-form" onSubmit={submitReview}>
+                  <div>
+                    <input name="name" required placeholder="Your name" />
+                    <select name="rating" defaultValue="5" aria-label="Rating">
+                      <option value="5">5 stars</option>
+                      <option value="4">4 stars</option>
+                      <option value="3">3 stars</option>
+                      <option value="2">2 stars</option>
+                      <option value="1">1 star</option>
+                    </select>
+                  </div>
+                  <textarea name="review" required placeholder="Write your review" />
+                  <div className="theme-review-actions">
+                    <button type="submit">Submit review</button>
+                    <button type="button" onClick={() => setReviewOpen(false)}>Cancel</button>
+                  </div>
+                </form>
+              )}
+              {reviewSaved && <small className="theme-review-success">✓ Your review has been added.</small>}
+            </div>
             <div className="review-list">
-              {reviews.map(([text, name]) => (
+              {productReviews.map(({ text, name, rating }) => (
                 <blockquote key={name}>
                   <span>★★★★★</span>
+                  <i className="submitted-review-stars">
+                    {Array.from({ length: rating }, () => "★").join("")}
+                  </i>
                   <p>{text}</p>
                   <footer>
                     <b>{name}</b>
