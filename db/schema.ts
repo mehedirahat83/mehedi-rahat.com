@@ -374,6 +374,26 @@ export const customerAccounts = pgTable(
   { customerId: text("customer_id").primaryKey().references(() => customers.id, { onDelete: "cascade" }), passwordHash: text("password_hash").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull() },
 );
 
+export const customerAddresses = pgTable(
+  "customer_addresses",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    label: text("label").notNull().default("Address"),
+    recipientName: text("recipient_name").notNull().default(""),
+    phone: text("phone").notNull().default(""),
+    line1: text("line1").notNull().default(""),
+    line2: text("line2").notNull().default(""),
+    city: text("city").notNull().default(""),
+    postcode: text("postcode").notNull().default(""),
+    country: text("country").notNull().default("Bangladesh"),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("customer_addresses_customer_idx").on(table.customerId), index("customer_addresses_customer_default_idx").on(table.customerId, table.isDefault)],
+);
+
 export const customerPasswordResets = pgTable(
   "customer_password_resets",
   { id: text("id").primaryKey(), customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }), tokenHash: text("token_hash").notNull().unique(), expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), usedAt: timestamp("used_at", { withTimezone: true }), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow() },
@@ -414,6 +434,70 @@ export const licenseActivationHistory = pgTable(
   (table) => [index("license_activation_history_activation_idx").on(table.activationId, table.createdAt)],
 );
 
+export const activationRequests = pgTable(
+  "activation_requests",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    websiteLoginUrl: text("website_login_url").notNull(),
+    username: text("username"),
+    passwordEncrypted: text("password_encrypted"),
+    customerNote: text("customer_note"),
+    adminNote: text("admin_note"),
+    status: text("status").notNull().default("pending"),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: text("reviewed_at"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("activation_requests_customer_created_idx").on(table.customerId, table.createdAt), index("activation_requests_order_idx").on(table.orderId), check("activation_requests_status_check", sql`${table.status} in ('pending', 'approved', 'rejected')`)],
+);
+
+export const activationRequestHistory = pgTable(
+  "activation_request_history",
+  { id: text("id").primaryKey(), requestId: text("request_id").notNull().references(() => activationRequests.id, { onDelete: "cascade" }), fromStatus: text("from_status"), toStatus: text("to_status").notNull(), note: text("note"), actor: text("actor").notNull(), createdAt: text("created_at").notNull() },
+  (table) => [index("activation_request_history_request_idx").on(table.requestId, table.createdAt)],
+);
+
+export const supportTickets = pgTable(
+  "support_tickets",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    orderId: text("order_id").notNull().references(() => orders.id, { onDelete: "restrict" }),
+    subject: text("subject").notNull(),
+    priority: text("priority").notNull().default("normal"),
+    status: text("status").notNull().default("open"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    closedAt: text("closed_at"),
+  },
+  (table) => [
+    index("support_tickets_customer_updated_idx").on(table.customerId, table.updatedAt),
+    index("support_tickets_status_updated_idx").on(table.status, table.updatedAt),
+    index("support_tickets_order_idx").on(table.orderId),
+    check("support_tickets_priority_check", sql`${table.priority} in ('low', 'normal', 'high', 'urgent')`),
+    check("support_tickets_status_check", sql`${table.status} in ('open', 'waiting_customer', 'waiting_admin', 'closed')`),
+  ],
+);
+
+export const supportTicketMessages = pgTable(
+  "support_ticket_messages",
+  {
+    id: text("id").primaryKey(),
+    ticketId: text("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+    authorType: text("author_type").notNull(),
+    authorName: text("author_name").notNull(),
+    body: text("body").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("support_ticket_messages_ticket_created_idx").on(table.ticketId, table.createdAt),
+    check("support_ticket_messages_author_check", sql`${table.authorType} in ('customer', 'admin')`),
+  ],
+);
+
 export const emailOutbox = pgTable(
   "email_outbox",
   {
@@ -444,6 +528,7 @@ export const smtpSettings = pgTable("smtp_settings", {
   passwordEncrypted: text("password_encrypted").notNull(),
   fromEmail: text("from_email").notNull(),
   fromName: text("from_name").notNull(),
+  notificationEmail: text("notification_email").notNull().default(""),
   updatedBy: text("updated_by").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

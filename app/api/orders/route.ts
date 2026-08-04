@@ -3,6 +3,7 @@ import { calculateOrderTotals, resolveCheckoutItems } from "@/app/server/orderCa
 import { encryptActivationPassword } from "@/app/server/activationCredentials";
 import { customerId as sessionCustomerId } from "@/app/customer-auth";
 import { membershipFor } from "@/app/membership";
+import { adminNotificationEmail, sendSupportTicketEmail } from "@/app/server/mail";
 
 const paymentMethods = new Set(["bkash"]);
 const clean = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
@@ -88,6 +89,11 @@ export async function POST(request: Request) {
       [crypto.randomUUID(), orderId, now],
     );
     await client.query("COMMIT");
+    void adminNotificationEmail().then((adminEmail) => adminEmail ? sendSupportTicketEmail({
+      to: adminEmail,
+      subject: `New order · ${orderNumber}`,
+      message: `${name} placed ${orderNumber} for ৳ ${totals.total.toLocaleString("en-US")}. Review its payment and items in the admin dashboard.`,
+    }).catch(() => undefined) : undefined).catch(() => undefined);
     return Response.json({ ok: true, order: { number: orderNumber, status: "payment_verification", createdAt: now, customer: { name, email, phone }, items: items.map(item => ({ id: item.itemKey, name: item.name, variation: item.variation, price: item.unitPrice, quantity: item.quantity })), payment: paymentMethod, subtotal: totals.subtotal, discount: totals.discount, paymentCharge: totals.paymentCharge, total: totals.total, senderNumber, transactionId } }, { status: 201 });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);

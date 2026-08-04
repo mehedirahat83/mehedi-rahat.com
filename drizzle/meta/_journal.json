@@ -89,6 +89,11 @@
     {"idx":12,"version":"7","when":1785854400000,"tag":"0012_customer_auth","breakpoints":true}
     ,{"idx":13,"version":"7","when":1785858000000,"tag":"0013_smtp_settings","breakpoints":true}
     ,{"idx":14,"version":"7","when":1785861600000,"tag":"0014_remove_order_tracking_tokens","breakpoints":true}
-    }
+    ,{"idx":15,"version":"7","when":1785865200000,"tag":"0015_membership_tiers","breakpoints":true}
+    ,{"idx":16,"version":"7","when":1785868800000,"tag":"0016_activation_requests","breakpoints":true}
+    ,{"idx":17,"version":"7","when":1785872400000,"tag":"0017_support_tickets","breakpoints":true}
+    ,{"idx":18,"version":"7","when":1785876000000,"tag":"0018_smtp_notification_email","breakpoints":true}
+    ,{"idx":19,"version":"7","when":1785879600000,"tag":"0019_default_admin_notification_email","breakpoints":true}
+    ,{"idx":20,"version":"7","when":1785883200000,"tag":"0020_customer_addresses","breakpoints":true}
   ]
 }

@@ -1,1 +1,1 @@
-import PortalSection from "../PortalSection"; export default function Page(){return <PortalSection kind="account-details"/>}
+import AccountDetails from "../AccountDetails"; export default function Page(){return <AccountDetails/>}

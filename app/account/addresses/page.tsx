@@ -1,1 +1,1 @@
-import PortalSection from "../PortalSection"; export default function Page(){return <PortalSection kind="addresses"/>}
+import Addresses from "../Addresses"; export default function Page(){return <Addresses/>}

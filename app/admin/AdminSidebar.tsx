@@ -32,7 +32,7 @@ export default function AdminSidebar({ active }: { active?: string }) {
     ["⚒", "Services", "/admin/services", "services"],
     ["◇", "My Projects", "/admin/projects", "projects"],
     ["★", "Reviews / Testimonials", "/admin/reviews", "reviews"],
-    ["▰", "Support Tickets", "#tickets", "tickets"],
+    ["▰", "Support Tickets", "/admin/support-tickets", "tickets"],
     ["⚙", "Activation Requests", "#activations", "activations"],
     ["⌁", "License Management", "#licenses", "licenses"],
     ["%", "Coupons", "#coupons", "coupons"],
